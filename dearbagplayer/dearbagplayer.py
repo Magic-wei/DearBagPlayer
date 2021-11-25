@@ -519,7 +519,7 @@ class RosbagPlayer():
         dpg.create_context()
 
         # Viewport
-        dpg.create_viewport(title="Rosbag Player", width=1500, height=900, x_pos=0, y_pos=0)
+        dpg.create_viewport(title="DearBagPlayer", width=1500, height=900, x_pos=0, y_pos=0)
         # dpg.set_viewport_small_icon("path/to/icon.ico")
         # dpg.set_viewport_large_icon("path/to/icon.ico")
         dpg.setup_dearpygui()
