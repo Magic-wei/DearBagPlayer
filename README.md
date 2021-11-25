@@ -94,8 +94,8 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
     - [x] Enable drop callbacks (single time series)
     - [x] Enable drop callbacks (XY plot)
     - [x] Enable drop callbacks (Data vs. travel distance)
-    - [ ] Clear all plots in the activated plot tab with one click
-    - [ ] Create new plot tab with one click
+    - [x] Clear all plots in the activated plot tab with one click
+    - [x] Create new plot tab with one click
     - [ ] Enable removing plot tab
     - [ ] Resize at runtime
     - [ ] Split plots vertically or horizontally at runtime
