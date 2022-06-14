@@ -18,7 +18,9 @@ import bisect
 import yaml
 from yaml.loader import SafeLoader
 
+
 class RosbagPlayer():
+
     def __init__(self, topics=None):
         # Bag info
         self.bag_files = list()
@@ -108,6 +110,7 @@ class RosbagPlayer():
 
         def addMsgData(topic, key, data):
             if key in msg_data[topic].keys():
+                # TODO: list.append() is much faster than np.append()
                 msg_data[topic][key] = np.append(msg_data[topic][key], data)
             else:
                 msg_data[topic][key] = np.array([data])
@@ -121,12 +124,12 @@ class RosbagPlayer():
                 return dict().fromkeys(msg.__slots__)
 
             def checkEndStatus(msg):
-                if not hasattr(msg, "__slots__"):
-                    # print(f"[checkEndStatus] {msg} found built-in type in [int, float, bool, str, list, tuple], End!")
-                    return True
+                if hasattr(msg, "__slots__"):
+                    # print(f"[checkEndStatus] {msg} still has children!")
+                    return False
 
-                # print(f"[checkEndStatus] {msg} still has children!")
-                return False
+                # print(f"[checkEndStatus] {msg} found built-in type in [int, float, bool, str, list, tuple], End!")
+                return True
 
             def name_join(upper, lower):
                 if not upper:
@@ -157,7 +160,7 @@ class RosbagPlayer():
                         addMsgData(topic, upper, int(msg))
                         return base_slots, upper
                     else:
-                        # int, float, str, boolean types
+                        # int, float, str types
                         addMsgData(topic, upper, msg)
                         return base_slots, upper
                 else:
@@ -194,17 +197,13 @@ class RosbagPlayer():
         # Return
         return msg_data
 
-    #
-    # ---- Update ----
-    #
+    # -----------------------------------------
+    # Update
+    # -----------------------------------------
 
     def update(self):
         self.timelineUpdate()
         self.curPointUpdate()
-
-    def getIndex(self, time_series, timestamp):
-        # Support both list or np.array
-        return bisect.bisect(time_series, timestamp) - 1
 
     def timelineUpdate(self):
         # Update head, index, and rendering
@@ -257,9 +256,13 @@ class RosbagPlayer():
             last_user_data_length = len(user_data)
             last_yaxis = yaxis
 
-    #
-    # ---- Plots ----
-    #
+    def getIndex(self, time_series, timestamp):
+        # Support both list or np.array
+        return bisect.bisect(time_series, timestamp) - 1
+
+    # -----------------------------------------
+    # Plots
+    # -----------------------------------------
 
     def clearTimeLinesAndPoints(self):
         if self.vlines is not None:
@@ -312,16 +315,22 @@ class RosbagPlayer():
             dpg.get_item_user_data(self.data_pool_window).remove(item)
 
     def commonDropCallback(self, yaxis, app_data):
+
         if self.xy_plot_enabled:
+            # X-Y plot with two time series
+
             datax = dpg.get_item_user_data(app_data[0])
             datay = dpg.get_item_user_data(app_data[1])
+
             # Check they belongs to the same topic and bag
             if datax[3] != datay[3] or datax[4] != datay[4]:
                 raise ValueError("XY plot must comes from the same bag and topic!")
-            # plot
+
+            # Plot line series
             bag_name = os.path.splitext(datax[4])[0]
             label = bag_name + ":" + datax[2] + "," + datay[2][-1]
             dpg.add_line_series(datax[1], datay[1], label=label, parent=yaxis)
+
             # Add button to legend right click bar
             dpg.add_button(label="Delete Series", user_data=dpg.last_item(), parent=dpg.last_item(),
                            callback=lambda s, a, u: dpg.delete_item(u))
@@ -331,15 +340,21 @@ class RosbagPlayer():
             new_user_data = old_user_data + [[datax[1], datay[1], label, datax[3], datax[4]]]  # topic, bag_name
             dpg.configure_item(yaxis, user_data=new_user_data)
             # print(dpg.get_item_user_data(yaxis))
+
         elif self.s_length_plot_enabled:
+            # Data vs. arc-length plot
+
             datax = dpg.get_item_user_data(app_data[0])
             datay = dpg.get_item_user_data(app_data[1])
             # Check they belongs to the same topic and bag
             if datax[3] != datay[3] or datax[4] != datay[4]:
                 raise ValueError("Data vs. s plot must comes from the same bag and topic!")
+
+            # Plot line series
             bag_name = os.path.splitext(datax[4])[0]
             label = bag_name + ":" + datay[2] + " vs. s"
             dpg.add_line_series(datax[1], datay[1], label=label, parent=yaxis)
+
             # Add button to legend right click bar
             dpg.add_button(label="Delete Series", user_data=dpg.last_item(), parent=dpg.last_item(),
                            callback=lambda s, a, u: dpg.delete_item(u))
@@ -349,7 +364,10 @@ class RosbagPlayer():
             new_user_data = old_user_data + [[datax[1], datay[1], label, datax[3], datax[4]]]  # topic, bag_name
             dpg.configure_item(yaxis, user_data=new_user_data)
             # print(dpg.get_item_user_data(yaxis))
+
         else:
+            # Data vs. time plots
+
             for item in app_data:
                 data = dpg.get_item_user_data(item)
                 bag_name = os.path.splitext(data[4])[0]
@@ -358,6 +376,8 @@ class RosbagPlayer():
                 # Add button to legend right click bar
                 dpg.add_button(label="Delete Series", user_data=dpg.last_item(), parent=dpg.last_item(),
                                callback=lambda s, a, u: dpg.delete_item(u))
+
+        # Clean drop data & fit plot regions
         self._resetValue()
         self._fitAxesData(dpg.get_item_info(yaxis)["parent"])
 
@@ -398,13 +418,6 @@ class RosbagPlayer():
     def createPlotFree(self, title="", x_label="", y_label="", drop_plot_enabled=True):
         return self.createPlotBase(title=title, x_label=x_label, y_label=y_label, drop_plot_enabled=drop_plot_enabled)
 
-    # def createPlotFree(self):
-    #     with dpg.plot(label="", equal_aspects=False, payload_type="plotting", drop_callback=self.plotDropCallback):
-    #         dpg.add_plot_legend()
-    #         dpg.add_plot_axis(dpg.mvXAxis, label="")
-    #         dpg.add_plot_axis(dpg.mvYAxis, label="", payload_type="plotting", drop_callback=self.axisDropCallback)
-
-
     def createSubplots(self, rows=2, columns=2):
         with dpg.subplots(rows=rows, columns=columns, no_title=True, height=600, width=800, no_resize=False):
             self.createPlotFree()
@@ -412,22 +425,25 @@ class RosbagPlayer():
             self.createPlotFree()
             self.createPlotFree()
 
-    #
-    # ---- Plot Canvas Control Board ----
-    #
+    # -----------------------------------------
+    # Plot Canvas Control Board
+    # -----------------------------------------
 
     def addPlotPageCb(self, sender, app_data, user_data):
         dpg.get_item_user_data(self.tab_bar)['plot_pages'] += 1
-        with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}", parent=self.tab_bar, before="Add Plot Button"):
+        with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}", parent=self.tab_bar,
+                     before="Add Plot Button"):
             self.createSubplots()
 
     def splitHorizontallyCb(self, sender, app_data, user_data):
+        # TODO: not yet completed
         subplots = dpg.get_item_user_data(self.tab_bar)['act_plot']
         print(dpg.get_item_info(subplots))
         new_columns = dpg.get_item_info(subplots)
         # dpg.configure_item(subplots, rows=)
 
     def splitVerticallyCb(self, sender, app_data, user_data):
+        # TODO: not yet completed
         subplots = dpg.get_item_user_data(self.tab_bar)['act_plot']
         print(dpg.get_item_info(subplots))
         new_rows = dpg.get_item_info(subplots)
@@ -450,9 +466,9 @@ class RosbagPlayer():
         dpg.get_item_user_data(sender)['act_tab'] = app_data
         dpg.get_item_user_data(sender)['act_plot'] = dpg.get_item_children(app_data)[1][0]
 
-    #
-    # ---- File Import ----
-    #
+    # -----------------------------------------
+    # File Import
+    # -----------------------------------------
 
     def selectDataFiles(self, sender, app_data, user_data):
         print("Sender: ", sender)
@@ -489,13 +505,14 @@ class RosbagPlayer():
                                                         entity, topic, label)
                                                     )
                                  )
-                    with dpg.drag_payload(parent=dpg.last_item(), drag_data=(dpg.get_item_user_data(self.data_pool_window)),
+                    with dpg.drag_payload(parent=dpg.last_item(),
+                                          drag_data=(dpg.get_item_user_data(self.data_pool_window)),
                                           payload_type="plotting"):
                         dpg.add_text(f"{len(dpg.get_item_user_data(self.data_pool_window))} series to plot")
 
-    #
-    # ---- run ----
-    #
+    # -----------------------------------------
+    # Main Entry
+    # -----------------------------------------
 
     def eventHandler(self, sender, data):
         # KeyDown data = [key, seconds]; KeyRelease data = key
@@ -520,13 +537,18 @@ class RosbagPlayer():
 
         # Viewport
         dpg.create_viewport(title="DearBagPlayer", width=1500, height=900, x_pos=0, y_pos=0)
+
+        # Icon TODO
         # dpg.set_viewport_small_icon("path/to/icon.ico")
         # dpg.set_viewport_large_icon("path/to/icon.ico")
+
+        # Initialization
         dpg.setup_dearpygui()
         dpg.show_viewport()
 
         # Viewport menu bar
-        with dpg.file_dialog(directory_selector=False, show=False, file_count=10, callback=self.selectDataFiles) as file_dialog_tag:
+        with dpg.file_dialog(directory_selector=False, show=False, file_count=10,
+                             callback=self.selectDataFiles) as file_dialog_tag:
             dpg.add_file_extension(".*")
             dpg.add_file_extension("", color=(150, 255, 150, 255))
             dpg.add_file_extension("Source files (*.cpp *.h *.hpp){.cpp,.h,.hpp}", color=(0, 255, 255, 255))
@@ -556,7 +578,8 @@ class RosbagPlayer():
                 dpg.add_button(label="Split Vertically", callback=self.splitVerticallyCb)
                 dpg.add_button(label="Clear", callback=self.clearCb)
 
-            with dpg.tab_bar(user_data={"act_tab": None, "act_plot": None, "plot_pages": 1}, callback=self.updateActCb) as self.tab_bar:
+            with dpg.tab_bar(user_data={"act_tab": None, "act_plot": None, "plot_pages": 1},
+                             callback=self.updateActCb) as self.tab_bar:
                 with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}"):
                     dpg.get_item_user_data(self.tab_bar)['act_tab'] = dpg.last_item()
                     with dpg.subplots(rows=2, columns=2, no_title=True, height=600, width=800):
@@ -602,14 +625,6 @@ class RosbagPlayer():
 
 
 if __name__ == "__main__":
-    # Get bag file path
-    script_path = os.path.split(os.path.realpath(__file__))[0]
-    base_dir = os.path.split(script_path)[0]
-    bag_dir = os.path.join(base_dir, "rosbag")
-    bag_filename = "L2_kmpc_v5_cte.bag"
-    bag_file = os.path.join(bag_dir, bag_filename)
-
     # Player
     player = RosbagPlayer()
     player.run()
-
