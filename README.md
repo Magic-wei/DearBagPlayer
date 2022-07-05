@@ -6,7 +6,7 @@ DearBagPlayer is a flexible rosbag player based on Dear PyGui in Python.
 Install dependencies with
 
 ```python
-pip install dearpygui numpy rosbags PyYAML
+pip install --extra-index-url https://rospypi.github.io/simple/ rosbag
 ```
 
 Run DearBagPlayer with
