@@ -505,6 +505,9 @@ class RosbagPlayer():
                                                         entity, topic, label)
                                                     )
                                  )
+
+                    # TODO: drag to plot directly when no item is selected,
+                    #  cancel selected items when click other windows
                     with dpg.drag_payload(parent=dpg.last_item(),
                                           drag_data=(dpg.get_item_user_data(self.data_pool_window)),
                                           payload_type="plotting"):
