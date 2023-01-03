@@ -69,6 +69,7 @@ class Timeline:
 
     @start.setter
     def start(self, value):
+        self._head += value - self._start_time  # offset head
         self._start_time = value
         self._end_time = self._start_time + self._duration
 
@@ -83,6 +84,8 @@ class Timeline:
         # Set value
         self._end_time = value
         self._duration = self._end_time - self._start_time
+        # Offset head
+        self._head = min(self._head, self._end_time)
 
     @property
     def duration(self):
@@ -95,6 +98,8 @@ class Timeline:
         # Set value
         self._duration = value
         self._end_time = self._start_time + self._duration
+        # Offset head
+        self._head = min(self._head, self._end_time)
 
     def validEndTime(self, value):
         if value <= self._start_time:
@@ -134,7 +139,6 @@ class Timeline:
 
         if self._head < self._start_time:
             # Play backward to the start time
-            print("Play backward to the start time")
             if self._loop_enabled:
                 self._head += self._duration
             else:
@@ -143,7 +147,6 @@ class Timeline:
                 return
         elif self._head > self._end_time:
             # Play forward to the end time
-            print("Play forward to the end time")
             if self._loop_enabled:
                 self._head -= self._duration
             else:
@@ -217,6 +220,7 @@ class TimelineWithSeries(Timeline):
             self._series[idx] += offset
         self._start_time = self._series[0]
         self._end_time = self._series[-1]
+        self._head += offset  # offset head
 
     @property
     def end(self):
@@ -229,6 +233,7 @@ class TimelineWithSeries(Timeline):
             self._series[idx] += offset
         self._start_time = self._series[0]
         self._end_time = self._series[-1]
+        self._head += offset  # offset head
 
     @property
     def duration(self):
@@ -282,7 +287,6 @@ class TimelineWithSeries(Timeline):
 
         if self._head < self._start_time:
             # Play backward to the start time
-            print("Play backward to the start time")
             if self._loop_enabled:
                 self._head += self._duration
                 self._index = self.getIndex(self._head)
@@ -293,7 +297,6 @@ class TimelineWithSeries(Timeline):
                 return
         elif self._head > self._end_time:
             # Play forward to the end time
-            print("Play forward to the end time")
             if self._loop_enabled:
                 self._head -= self._duration
                 self._index = self.getIndex(self._head)
