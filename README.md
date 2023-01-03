@@ -112,4 +112,4 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
 
 ## License
 
-MIT License
+[MIT License](./LICENSE)

@@ -1,3 +1,11 @@
+"""
+Copyright (c) 2021-2022, Wei Wang <wei.wang.bit@outlook.com>
+
+Timeline Widgets based on DearPyGui:
+- TimelineWidgets
+- TimelineWidgetsWithSeries
+"""
+
 import dearpygui.dearpygui as dpg
 import os
 import sys
@@ -12,8 +20,7 @@ except:
 
 
 class TimelineWidgets:
-    """
-    Create Timeline Wigets given Start Time and Duration
+    """Create Timeline Wigets given Start Time and Duration
 
     Usage examples:
 
@@ -198,8 +205,7 @@ class TimelineWidgets:
 
 
 class TimelineWidgetsWithSeries(TimelineWidgets):
-    """
-    Create Timeline Wigets from Time Series
+    """Create Timeline Wigets from Time Series.
 
     Usage examples:
 

@@ -1,3 +1,11 @@
+"""
+Copyright (c) 2021-2022, Wei Wang <wei.wang.bit@outlook.com>
+
+Timeline Base Classes
+- Timeline
+- TimelineWithSeries
+"""
+
 import bisect
 
 
@@ -157,6 +165,7 @@ class Timeline:
 
 class TimelineWithSeries(Timeline):
     """Create timeline given a time series (list/tuple/np.array-like).
+
     Usage examples:
     >>> series = list(range(10))
     >>> timeline = TimelineWithSeries(series)

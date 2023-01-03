@@ -1,3 +1,9 @@
+"""
+Copyright (c) 2021-2022, Wei Wang <wei.wang.bit@outlook.com>
+
+DearBagPlayer Application
+"""
+
 import os
 import sys
 
@@ -19,7 +25,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 
-class RosbagPlayer():
+class DearBagPlayer:
 
     def __init__(self, topics=None):
         # Bag info
@@ -628,6 +634,6 @@ class RosbagPlayer():
 
 
 if __name__ == "__main__":
-    # Player
-    player = RosbagPlayer()
+    # Run application
+    player = DearBagPlayer()
     player.run()
