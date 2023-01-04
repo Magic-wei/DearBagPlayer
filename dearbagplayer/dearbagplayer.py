@@ -193,8 +193,13 @@ class DearBagPlayer:
                 timestamp = msg.header.stamp.secs + msg.header.stamp.nsecs * pow(10, -9)
             addMsgData(topic, "timestamp", timestamp)
 
+        # Align timestamp
+        timestamp_min = np.inf
         for topic in msg_data.keys():
-            msg_data[topic]["timestamp"] -= msg_data[topic]["timestamp"][0]
+            timestamp_min = min(timestamp_min, msg_data[topic]["timestamp"][0])
+
+        for topic in msg_data.keys():
+            msg_data[topic]["timestamp"] -= timestamp_min
 
         # Close bag
         bag.close()
