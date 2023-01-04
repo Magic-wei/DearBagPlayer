@@ -641,9 +641,3 @@ class DearBagPlayer:
 
         # End
         dpg.destroy_context()
-
-
-if __name__ == "__main__":
-    # Run application
-    player = DearBagPlayer()
-    player.run()

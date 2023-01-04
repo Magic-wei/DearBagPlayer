@@ -3,25 +3,23 @@ DearBagPlayer is a flexible rosbag player based on Dear PyGui in Python.
 
 ## Quick Start
 
-Install dependencies with
+Install dependencies:
 
 ```shell
-pip install dearpygui numpy rosbag
-```
-
-If you have any problem when installing `rosbag`, try it this way:
-
-```shell
+pip install dearpygui numpy
 pip install --extra-index-url https://rospypi.github.io/simple/ rosbag
 ```
 
-Run DearBagPlayer with
+Install DearBagPlayer:
+
+```
+pip install dearbagplayer
+```
+
+Run DearBagPlayer:
 
 ```shell
-# Linux
-python dearbagplayer/dearbagplayer.py
-# Windows
-python dearbagplayer\dearbagplayer.py
+dearbagplayer
 ```
 
 See [features](#Features) below to take a quick look at the main features.
@@ -109,7 +107,11 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
   - [ ] Enable live streaming
   - [ ] Enable publishing
   - [ ] Save and load config files
-  - [ ] Installation: Upload DearBagPlayer to PyPI
+  - [x] Packaging
+    - [x] Convert DearBagPlayer to a Python package
+    - [x] Add entry point for CLI usage
+    - [x] Configure setup
+    - [x] Release to PyPI
 
 ## License
 

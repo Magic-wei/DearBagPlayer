@@ -1,0 +1,3 @@
+dearpygui
+numpy
+rosbag

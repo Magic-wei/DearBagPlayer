@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=58.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "DearBagPlayer"
+description = "DearBagPlayer is a flexible rosbag player based on Dear PyGui in Python."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+  { name="Wei Wang", email="wei.wang.bit@outlook.com" },
+]
+keywords = [
+    "DearPyGui",
+    "Visualization",
+    "rosbag",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+"Homepage" = "https://github.com/Magic-wei/DearBagPlayer"
+"Bug Tracker" = "https://github.com/Magic-wei/DearBagPlayer/issues"
+
+[project.scripts]
+dearbagplayer = "dearbagplayer:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "dearbagplayer.VERSION"}
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+include = ["dearbagplayer"]
