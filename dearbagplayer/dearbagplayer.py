@@ -13,7 +13,7 @@ sys.path.append(script_abspath)
 try:
     import timeline_widgets
 except:
-    raise
+    raise ModuleNotFoundError('Module timeline_widgets not found.')
 
 import dearpygui.dearpygui as dpg
 import rosbag
@@ -86,9 +86,8 @@ class DearBagPlayer:
                 return True
 
             if not checkTopic(topics):
-                print("Topics not found in rosbag!")
                 bag.close()
-                exit(1)
+                raise ValueError('At least one given topic not found in rosbag!')
 
         """
         msg_data = {
@@ -517,14 +516,16 @@ class DearBagPlayer:
                     if entity == "timestamp" or isinstance(database[topic][entity][0], str):
                         continue
 
-                    items.append(dpg.add_selectable(label=entity, payload_type="plotting",
-                                                    callback=_update_count,
-                                                    user_data=(
-                                                        database[topic]["timestamp"],
-                                                        database[topic][entity],
-                                                        entity, topic, label)
-                                                    )
-                                 )
+                    items.append(
+                        dpg.add_selectable(
+                            label=entity, payload_type="plotting", callback=_update_count,
+                            user_data=(
+                                database[topic]["timestamp"],
+                                database[topic][entity],
+                                entity, topic, label
+                            )
+                        )
+                    )
 
                     # TODO: drag to plot directly when no item is selected,
                     #  cancel selected items when click other windows
@@ -613,8 +614,7 @@ class DearBagPlayer:
 
             self.__timeline.createWidgets()
 
-        # --------------- Handlers -------------------
-
+        # handlers
         with dpg.handler_registry(tag="__demo_keyboard_handler"):  # show=True by default
             dpg.add_key_down_handler(key=dpg.mvKey_Control)
             dpg.add_key_release_handler(key=dpg.mvKey_Control)
@@ -625,8 +625,6 @@ class DearBagPlayer:
 
         for handler in dpg.get_item_children("__demo_keyboard_handler", 1):
             dpg.set_item_callback(handler, self.eventHandler)
-
-        # --------------- Handlers -------------------
 
         # The Primary Window
         # dpg.set_primary_window("Primary Window", True)

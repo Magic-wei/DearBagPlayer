@@ -109,6 +109,7 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
   - [ ] Enable live streaming
   - [ ] Enable publishing
   - [ ] Save and load config files
+  - [ ] Installation: Upload DearBagPlayer to PyPI
 
 ## License
 
