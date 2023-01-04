@@ -104,7 +104,7 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
     - [x] Create new plot tab with one click
     - [ ] Enable removing plot tab
     - [ ] Resize at runtime
-    - [ ] Split plots vertically or horizontally at runtime
+    - [x] Split plots vertically or horizontally at runtime
     - [ ] Copy plots or save to files
   - [ ] Enable live streaming
   - [ ] Enable publishing

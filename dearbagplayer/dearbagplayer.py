@@ -424,11 +424,28 @@ class DearBagPlayer:
     def createPlotFree(self, title="", x_label="", y_label="", drop_plot_enabled=True):
         return self.createPlotBase(title=title, x_label=x_label, y_label=y_label, drop_plot_enabled=drop_plot_enabled)
 
-    def createSubplots(self, rows=2, columns=2):
+    def addPlotWithParent(self, parent, title="", x_label="", y_label="", height=200, width=300,
+                    equal_aspects=False, drop_plot_enabled=True):
+
+        if drop_plot_enabled:
+            plot_drop_callback = self.plotDropCallback
+            axis_drop_callback = self.axisDropCallback
+        else:
+            plot_drop_callback = None
+            axis_drop_callback = None
+
+        plot_tag = dpg.add_plot(
+            label=title, height=height, width=width, equal_aspects=equal_aspects, payload_type="plotting",
+            drop_callback=plot_drop_callback, parent=parent,
+        )
+        dpg.add_plot_axis(dpg.mvXAxis, label=x_label, parent=plot_tag)
+        dpg.add_plot_axis(dpg.mvYAxis, label=y_label, payload_type="plotting",
+                          parent=plot_tag, drop_callback=axis_drop_callback)
+
+        return plot_tag
+
+    def createSubplots(self, rows=1, columns=1):
         with dpg.subplots(rows=rows, columns=columns, no_title=True, height=600, width=800, no_resize=False):
-            self.createPlotFree()
-            self.createPlotFree()
-            self.createPlotFree()
             self.createPlotFree()
 
     # -----------------------------------------
@@ -442,18 +459,23 @@ class DearBagPlayer:
             self.createSubplots()
 
     def splitHorizontallyCb(self, sender, app_data, user_data):
-        # TODO: not yet completed
         subplots = dpg.get_item_user_data(self.tab_bar)['act_plot']
-        print(dpg.get_item_info(subplots))
-        new_columns = dpg.get_item_info(subplots)
-        # dpg.configure_item(subplots, rows=)
+        cols = dpg.get_item_configuration(subplots)['cols']
+        rows = dpg.get_item_configuration(subplots)['rows']
+        plots = dpg.get_item_children(subplots)[1]
+        for row in range(rows):
+            plot_tag = self.addPlotWithParent(subplots)
+            plots.insert(cols * (rows - row), plot_tag)
+        dpg.reorder_items(subplots, 1, plots)
+        dpg.configure_item(subplots, columns=cols + 1)
 
     def splitVerticallyCb(self, sender, app_data, user_data):
-        # TODO: not yet completed
         subplots = dpg.get_item_user_data(self.tab_bar)['act_plot']
-        print(dpg.get_item_info(subplots))
-        new_rows = dpg.get_item_info(subplots)
-        # dpg.configure_item(subplots, rows=)
+        cols = dpg.get_item_configuration(subplots)['cols']
+        rows = dpg.get_item_configuration(subplots)['rows']
+        for col in range(cols):
+            self.addPlotWithParent(subplots)
+        dpg.configure_item(subplots, rows=rows + 1)
 
     def clearCb(self, sender, app_data, user_data):
         self.__timeline.stop()
@@ -591,11 +613,8 @@ class DearBagPlayer:
                              callback=self.updateActCb) as self.tab_bar:
                 with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}"):
                     dpg.get_item_user_data(self.tab_bar)['act_tab'] = dpg.last_item()
-                    with dpg.subplots(rows=2, columns=2, no_title=True, height=600, width=800):
+                    with dpg.subplots(rows=1, columns=1, no_title=True, height=600, width=800):
                         dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
-                        self.createPlotFree()
-                        self.createPlotFree()
-                        self.createPlotFree()
                         self.createPlotFree()
                 dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb)
 
