@@ -394,8 +394,9 @@ class DearBagPlayer:
     def axisDropCallback(self, sender, app_data, user_data):
         self.commonDropCallback(sender, app_data)
 
-    def createPlotBase(self, title, x_label="X [m]", y_label="Y [m]", height=200, width=300, equal_aspects=False,
-                       drop_plot_enabled=False):
+    def addPlot(self, title="", x_label="", y_label="", height=200, width=300,
+                equal_aspects=False, drop_plot_enabled=True):
+        
         if drop_plot_enabled:
             plot_drop_callback = self.plotDropCallback
             axis_drop_callback = self.axisDropCallback
@@ -403,26 +404,12 @@ class DearBagPlayer:
             plot_drop_callback = None
             axis_drop_callback = None
 
-        with dpg.plot(label=title, height=height, width=width, equal_aspects=equal_aspects, payload_type="plotting",
-                      drop_callback=plot_drop_callback):
+        with dpg.plot(label=title, height=height, width=width, equal_aspects=equal_aspects, 
+                      payload_type="plotting", drop_callback=plot_drop_callback):
             dpg.add_plot_legend()
-            x_axis_tag = dpg.add_plot_axis(dpg.mvXAxis, label=x_label)
-            y_axis_tag = dpg.add_plot_axis(dpg.mvYAxis, label=y_label, payload_type="plotting",
-                                           drop_callback=axis_drop_callback)
-        return x_axis_tag, y_axis_tag
-
-    def createXYPosPlot(self, title, x_label="X [m]", y_label="Y [m]", height=200, width=300, equal_aspects=False,
-                        drop_plot_enabled=False):
-        return self.createPlotBase(title=title, x_label=x_label, y_label=y_label, height=height, width=width,
-                                   equal_aspects=equal_aspects, drop_plot_enabled=drop_plot_enabled)
-
-    def createTimeSeriesPlot(self, title, x_label="Time [s]", y_label="Series", height=200, width=300,
-                             equal_aspects=False, drop_plot_enabled=False):
-        return self.createPlotBase(title=title, x_label=x_label, y_label=y_label, height=height, width=width,
-                                   equal_aspects=equal_aspects, drop_plot_enabled=drop_plot_enabled)
-
-    def createPlotFree(self, title="", x_label="", y_label="", drop_plot_enabled=True):
-        return self.createPlotBase(title=title, x_label=x_label, y_label=y_label, drop_plot_enabled=drop_plot_enabled)
+            dpg.add_plot_axis(dpg.mvXAxis, label=x_label)
+            dpg.add_plot_axis(dpg.mvYAxis, label=y_label, payload_type="plotting",
+                              drop_callback=axis_drop_callback)
 
     def addPlotWithParent(self, parent, title="", x_label="", y_label="", height=200, width=300,
                     equal_aspects=False, drop_plot_enabled=True):
@@ -446,7 +433,7 @@ class DearBagPlayer:
 
     def createSubplots(self, rows=1, columns=1):
         with dpg.subplots(rows=rows, columns=columns, no_title=True, height=600, width=800, no_resize=False):
-            self.createPlotFree()
+            self.addPlot()
 
     # -----------------------------------------
     # Plot Canvas Control Board
@@ -616,7 +603,7 @@ class DearBagPlayer:
                     dpg.get_item_user_data(self.tab_bar)['act_tab'] = dpg.last_item()
                     with dpg.subplots(rows=1, columns=1, no_title=True, height=600, width=800):
                         dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
-                        self.createPlotFree()
+                        self.addPlot()
                 dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb)
 
             self.__timeline.createWidgets()
