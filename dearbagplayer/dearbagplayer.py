@@ -579,6 +579,7 @@ class DearBagPlayer:
 
         # Viewport menu bar
         with dpg.file_dialog(directory_selector=False, show=False, file_count=10,
+                             width=600, height=600,
                              callback=self.selectDataFiles) as file_dialog_tag:
             dpg.add_file_extension(".*")
             dpg.add_file_extension("", color=(150, 255, 150, 255))
