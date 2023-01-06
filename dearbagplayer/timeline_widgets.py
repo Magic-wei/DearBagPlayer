@@ -63,7 +63,7 @@ class TimelineWidgets:
     >>> dpg.destroy_context()
     """
     __slots__ = ('__timeline', 'timeline_bar', 'timeline_bar2', 'head_updated', 'is_played',
-                 'text_box', 'speed_box', 'play_button', 'pause_button', 'stop_button')
+                 'text_box', 'speed_box', 'play_button', 'pause_button', 'stop_button', 'loop_checkbox')
 
     def __init__(self, start_time=0.0, duration=0.0, loop_enabled=True):
         self.__timeline = timeline.Timeline(start_time, duration, loop_enabled)
@@ -134,6 +134,8 @@ class TimelineWidgets:
             )
             self.pause_button = dpg.add_button(label="Pause", callback=self.pauseCb)
             self.stop_button = dpg.add_button(label="Stop", callback=self.stopCb)
+            self.loop_checkbox = dpg.add_checkbox(label="Play in loop", callback=self.loopCb,
+                                                  default_value=self.__timeline.loop_enabled)
             dpg.disable_item(self.pause_button)
 
     def timelineSettingCb(self, sender, app_data, user_data):
@@ -154,6 +156,9 @@ class TimelineWidgets:
 
     def stopCb(self, sender, app_data, user_data):
         self.stop()
+
+    def loopCb(self, sender, app_data, user_data):
+        self.__timeline.loop_enabled = app_data
 
     def play(self):
         self.is_played = True
@@ -197,6 +202,10 @@ class TimelineWidgets:
             dpg.set_value(self.timeline_bar2, now)
             dpg.configure_item(self.timeline_bar, overlay=f"{now:.02f}/{self.__timeline.end:.02f}")
             dpg.configure_item(self.text_box, default_value=f"{now:.02f}/{self.__timeline.end:.02f}")
+
+            # Stop when not play in loop and timeline is over
+            if self.is_played and not self.__timeline.loop_enabled and self.__timeline.speed == 0.0:
+                self.stop()
 
     def render(self, delta_time):
         # Timeline render

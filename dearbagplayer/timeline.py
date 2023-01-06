@@ -109,6 +109,18 @@ class Timeline:
         # Offset head
         self._head = min(self._head, self._end_time)
 
+    @property
+    def loop_enabled(self):
+        return self._loop_enabled
+
+    @loop_enabled.setter
+    def loop_enabled(self, value):
+        self._loop_enabled = value
+
+    @property
+    def speed(self):
+        return self._direction
+
     def validEndTime(self, value):
         if value <= self._start_time:
             raise ValueError(f'[{self.__class__.__name__}] End time must be equal to or greater than start time!')
@@ -116,10 +128,6 @@ class Timeline:
     def validDuration(self, value):
         if value < 0:
             raise ValueError(f'[{self.__class__.__name__}] Duration must be non-negative!')
-
-    def loop(self):
-        # Toggle looping or not
-        self._loop_enabled = not self._loop_enabled
 
     def now(self):
         return self._head
@@ -158,7 +166,7 @@ class Timeline:
             if self._loop_enabled:
                 self._head -= self._duration
             else:
-                self._head = self._duration
+                self._head = self._end_time
                 self.stop()
                 return
 
@@ -310,7 +318,7 @@ class TimelineWithSeries(Timeline):
                 self._head -= self._duration
                 self._index = self.getIndex(self._head)
             else:
-                self._head = self._duration
+                self._head = self._end_time
                 self._index = len(self._series) - 1
                 self.stop()
                 return

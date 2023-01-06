@@ -92,7 +92,7 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
     - [x] Modify play speed (-5 to 5)
     - [x] Sync timestamp by drag timeline
     - [ ] Drag timestamp in a time series plot and sync timeline
-    - [ ] Add button to enable/disable playing in loop
+    - [x] Add button to enable/disable playing in loop
   - [ ] Plots:
     - [x] Create new plot tab with 2x2 subplots
     - [x] Enable drop callbacks (single time series)
