@@ -18,7 +18,7 @@ class Timeline:
     -1 9 10
     >>> timeline.now()
     -1
-    >>> timeline.play(3.0)  # x2 speed
+    >>> timeline.play(3.0)  # x3 speed
     >>> timeline.render(0.5)  # walltime, playback 0.5 * 3.0 for timeline actually
     >>> timeline.now()
     0.5
@@ -288,6 +288,11 @@ class TimelineWithSeries(Timeline):
     def getIndex(self, timestamp):
         # Support both list or np.array
         return bisect.bisect(self.series, timestamp) - 1
+
+    def stop(self):
+        self.pause()
+        self._head = self._start_time
+        self._index = 0
 
     def set(self, timestamp):
         self._index = self.getIndex(timestamp)

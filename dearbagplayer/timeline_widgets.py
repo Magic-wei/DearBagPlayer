@@ -62,11 +62,11 @@ class TimelineWidgets:
     ...         break
     >>> dpg.destroy_context()
     """
-    __slots__ = ('__timeline', 'timeline_bar', 'timeline_bar2', 'head_updated', 'is_played',
+    __slots__ = ('_timeline', 'timeline_bar', 'timeline_bar2', 'head_updated', 'is_played',
                  'text_box', 'speed_box', 'play_button', 'pause_button', 'stop_button', 'loop_checkbox')
 
     def __init__(self, start_time=0.0, duration=0.0, loop_enabled=True):
-        self.__timeline = timeline.Timeline(start_time, duration, loop_enabled)
+        self._timeline = timeline.Timeline(start_time, duration, loop_enabled)
 
         # Elements
         self.timeline_bar = None
@@ -78,50 +78,50 @@ class TimelineWidgets:
 
     @property
     def start(self):
-        return self.__timeline.start
+        return self._timeline.start
 
     @start.setter
     def start(self, value):
-        self.__timeline.start = value
-        dpg.configure_item(self.timeline_bar2, min_value=self.__timeline.start)
+        self._timeline.start = value
+        dpg.configure_item(self.timeline_bar2, min_value=self._timeline.start)
 
     @property
     def end(self):
-        return self.__timeline.end
+        return self._timeline.end
 
     @end.setter
     def end(self, value):
-        self.__timeline.end = value
-        dpg.configure_item(self.timeline_bar2, max_value=self.__timeline.end)
+        self._timeline.end = value
+        dpg.configure_item(self.timeline_bar2, max_value=self._timeline.end)
 
     @property
     def duration(self):
-        return self.__timeline.duration
+        return self._timeline.duration
 
     @duration.setter
     def duration(self, value):
-        self.__timeline.duration = value
+        self._timeline.duration = value
 
     def now(self):
-        return self.__timeline.now()
+        return self._timeline.now()
 
     def resetLimits(self, min_t, max_t):
-        self.__timeline.start = min_t
-        self.__timeline.end = max_t
+        self._timeline.start = min_t
+        self._timeline.end = max_t
         dpg.configure_item(
-            self.timeline_bar2, min_value=self.__timeline.start, max_value=self.__timeline.end
+            self.timeline_bar2, min_value=self._timeline.start, max_value=self._timeline.end
         )
 
     def createWidgets(self):
         with dpg.group(horizontal=True):
             self.timeline_bar = dpg.add_progress_bar(
-                label="Timeline", overlay=f"{self.__timeline.start}/{self.__timeline.end}"
+                label="Timeline", overlay=f"{self._timeline.start}/{self._timeline.end}"
             )
             self.text_box = dpg.add_text(label="")
 
         self.timeline_bar2 = dpg.add_slider_float(
-            label="", default_value=self.__timeline.start,
-            min_value=self.__timeline.start, max_value=self.__timeline.end,
+            label="", default_value=self._timeline.start,
+            min_value=self._timeline.start, max_value=self._timeline.end,
             callback=self.timelineSettingCb
         )
         with dpg.group(horizontal=True):
@@ -135,18 +135,18 @@ class TimelineWidgets:
             self.pause_button = dpg.add_button(label="Pause", callback=self.pauseCb)
             self.stop_button = dpg.add_button(label="Stop", callback=self.stopCb)
             self.loop_checkbox = dpg.add_checkbox(label="Play in loop", callback=self.loopCb,
-                                                  default_value=self.__timeline.loop_enabled)
+                                                  default_value=self._timeline.loop_enabled)
             dpg.disable_item(self.pause_button)
 
     def timelineSettingCb(self, sender, app_data, user_data):
         cur_time = app_data
-        self.__timeline.set(cur_time)
-        dpg.set_value(self.timeline_bar, (cur_time - self.__timeline.start) / self.__timeline.duration)
+        self._timeline.set(cur_time)
+        dpg.set_value(self.timeline_bar, (cur_time - self._timeline.start) / self._timeline.duration)
         self.head_updated = True
 
     def speedCb(self, sender, app_data, user_data):
         if not dpg.is_item_enabled(self.play_button):
-            self.__timeline.play(dpg.get_value(self.speed_box))
+            self._timeline.play(dpg.get_value(self.speed_box))
 
     def playCb(self, sender, app_data, user_data):
         self.play()
@@ -158,11 +158,11 @@ class TimelineWidgets:
         self.stop()
 
     def loopCb(self, sender, app_data, user_data):
-        self.__timeline.loop_enabled = app_data
+        self._timeline.loop_enabled = app_data
 
     def play(self):
         self.is_played = True
-        self.__timeline.play(dpg.get_value(self.speed_box))
+        self._timeline.play(dpg.get_value(self.speed_box))
         if dpg.is_item_enabled(self.play_button):
             # print("Play Disabled!")
             dpg.disable_item(self.play_button)
@@ -171,7 +171,7 @@ class TimelineWidgets:
 
     def pause(self):
         self.is_played = False
-        self.__timeline.pause()
+        self._timeline.pause()
         if dpg.is_item_enabled(self.pause_button):
             # print("Play Disabled!")
             dpg.disable_item(self.pause_button)
@@ -180,7 +180,7 @@ class TimelineWidgets:
 
     def stop(self):
         self.is_played = False
-        self.__timeline.stop()
+        self._timeline.stop()
         if dpg.is_item_enabled(self.stop_button):
             # print("Stop Disabled!")
             dpg.disable_item(self.stop_button)
@@ -195,22 +195,22 @@ class TimelineWidgets:
 
     def updateTimeline(self, now):
         if self.timeline_bar and self.timeline_bar2:
-            if self.__timeline.duration == 0.0:
+            if self._timeline.duration == 0.0:
                 dpg.set_value(self.timeline_bar, 0.0)
             else:
-                dpg.set_value(self.timeline_bar, (now - self.__timeline.start) / self.__timeline.duration)
+                dpg.set_value(self.timeline_bar, (now - self._timeline.start) / self._timeline.duration)
             dpg.set_value(self.timeline_bar2, now)
-            dpg.configure_item(self.timeline_bar, overlay=f"{now:.02f}/{self.__timeline.end:.02f}")
-            dpg.configure_item(self.text_box, default_value=f"{now:.02f}/{self.__timeline.end:.02f}")
+            dpg.configure_item(self.timeline_bar, overlay=f"{now:.02f}/{self._timeline.end:.02f}")
+            dpg.configure_item(self.text_box, default_value=f"{now:.02f}/{self._timeline.end:.02f}")
 
             # Stop when not play in loop and timeline is over
-            if self.is_played and not self.__timeline.loop_enabled and self.__timeline.speed == 0.0:
+            if self.is_played and not self._timeline.loop_enabled and self._timeline.speed == 0.0:
                 self.stop()
 
     def render(self, delta_time):
         # Timeline render
-        self.__timeline.render(delta_time)
-        self.updateTimeline(self.__timeline.now())
+        self._timeline.render(delta_time)
+        self.updateTimeline(self._timeline.now())
 
 
 class TimelineWidgetsWithSeries(TimelineWidgets):
@@ -244,11 +244,11 @@ class TimelineWidgetsWithSeries(TimelineWidgets):
     >>> print(timeline_widget.start, timeline_widget.end, timeline_widget.duration)
     -7.0 3.0 10.0
     >>> timeline_widget.now()
-    0.0
+    -7.0
     >>> timeline_widget.play()  # default speed = 1.0
     >>> timeline_widget.render(1.2)
     >>> timeline_widget.now()
-    1.2
+    -5.8
 
     # Test widget running
     >>> import time; start = time.time()
@@ -261,50 +261,50 @@ class TimelineWidgetsWithSeries(TimelineWidgets):
     """
 
     def __init__(self, series, loop_enabled=True):
-        self.__timeline = timeline.TimelineWithSeries(series, loop_enabled)
-
         # Super class initialization
         start = series[0]
         duration = series[-1] - series[0]
         super().__init__(start, duration, loop_enabled)
 
+        # Override timeline instance
+        self._timeline = timeline.TimelineWithSeries(series, loop_enabled)
+
     @property
     def start(self):
-        return self.__timeline.start
+        return self._timeline.start
 
     @start.setter
     def start(self, value):
-        self.__timeline.start = value
+        self._timeline.start = value
         dpg.configure_item(
-            self.timeline_bar2, min_value=self.__timeline.start, max_value=self.__timeline.end
+            self.timeline_bar2, min_value=self._timeline.start, max_value=self._timeline.end
         )
 
     @property
     def end(self):
-        return self.__timeline.end
+        return self._timeline.end
 
     @end.setter
     def end(self, value):
-        self.__timeline.end = value
+        self._timeline.end = value
         dpg.configure_item(
-            self.timeline_bar2, min_value=self.__timeline.start, max_value=self.__timeline.end
+            self.timeline_bar2, min_value=self._timeline.start, max_value=self._timeline.end
         )
 
     @property
     def duration(self):
         """Override property to remove setter"""
-        return self.__timeline.duration
+        return self._timeline.duration
 
     @property
     def index(self):
-        return self.__timeline.index
+        return self._timeline.index
 
     def getTimestamp(self, index):
-        return self.__timeline.getTimestamp(index)
+        return self._timeline.getTimestamp(index)
 
     def getIndex(self, timestamp):
-        return self.__timeline.getIndex(timestamp)
-
+        return self._timeline.getIndex(timestamp)
 
 if __name__ == "__main__":
     import doctest
