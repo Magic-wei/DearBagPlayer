@@ -445,8 +445,7 @@ class DearBagPlayer:
 
     def addPlotPageCb(self, sender, app_data, user_data):
         dpg.get_item_user_data(self.tab_bar)['plot_pages'] += 1
-        with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}", parent=self.tab_bar,
-                     before="Add Plot Button"):
+        with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}", parent=self.tab_bar):
             self.createSubplots()
 
     def splitHorizontallyCb(self, sender, app_data, user_data):
@@ -604,13 +603,13 @@ class DearBagPlayer:
                 dpg.add_button(label="Clear", callback=self.clearCb)
 
             with dpg.tab_bar(user_data={"act_tab": None, "act_plot": None, "plot_pages": 1},
-                             callback=self.updateActCb) as self.tab_bar:
+                             reorderable=True, callback=self.updateActCb) as self.tab_bar:
                 with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}"):
                     dpg.get_item_user_data(self.tab_bar)['act_tab'] = dpg.last_item()
                     with dpg.subplots(rows=1, columns=1, no_title=True, height=600, width=800):
                         dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
                         self.addPlot()
-                dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb)
+                dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb, trailing=True)
 
             self.__timeline.createWidgets()
 
