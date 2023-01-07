@@ -100,7 +100,8 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
     - [x] Enable drop callbacks (Data vs. travel distance)
     - [x] Clear all plots in the activated plot tab with one click
     - [x] Create new plot tab with one click
-    - [ ] Enable removing plot tab
+    - [x] Enable closing plot tab
+    - [ ] Enable renaming plot tab
     - [ ] Resize at runtime
     - [x] Split plots vertically or horizontally at runtime
     - [ ] Copy plots or save to files

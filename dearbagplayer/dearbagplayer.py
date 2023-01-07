@@ -445,7 +445,8 @@ class DearBagPlayer:
 
     def addPlotPageCb(self, sender, app_data, user_data):
         dpg.get_item_user_data(self.tab_bar)['plot_pages'] += 1
-        with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}", parent=self.tab_bar):
+        with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}",
+                     parent=self.tab_bar, closable=True):
             self.createSubplots()
 
     def splitHorizontallyCb(self, sender, app_data, user_data):
@@ -479,7 +480,23 @@ class DearBagPlayer:
             dpg.delete_item(yaxis, children_only=True)
 
     def updateActCb(self, sender, app_data, user_data):
-        # app_data is the activated tab
+        """
+        Triggered when activated tab is changed.
+
+        Actions that won't trigger this callback function:
+        - Create a new tab by clicking the '+' button
+        - Delete a tab that is not activated
+        - Delete the last tab
+
+        :param sender: tag of the tab_bar
+        :param app_data: the activated tab
+        :param user_data: {"act_tab": tag, "act_plot": tag, "plot_pages": int}
+
+        TODO: Create a new tab when the last tab is deleted
+        """
+        for tab in dpg.get_item_children(sender)[1]:
+            if not dpg.get_item_configuration(tab)['show']:
+                dpg.delete_item(tab)
         self.clearTimeLinesAndPoints()
         dpg.get_item_user_data(sender)['act_tab'] = app_data
         dpg.get_item_user_data(sender)['act_plot'] = dpg.get_item_children(app_data)[1][0]
@@ -604,7 +621,7 @@ class DearBagPlayer:
 
             with dpg.tab_bar(user_data={"act_tab": None, "act_plot": None, "plot_pages": 1},
                              reorderable=True, callback=self.updateActCb) as self.tab_bar:
-                with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}"):
+                with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}", closable=True):
                     dpg.get_item_user_data(self.tab_bar)['act_tab'] = dpg.last_item()
                     with dpg.subplots(rows=1, columns=1, no_title=True, height=600, width=800):
                         dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
