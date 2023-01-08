@@ -351,8 +351,8 @@ class DearBagPlayer:
             dpg.add_line_series(datax[1], datay[1], label=label, parent=yaxis)
 
             # Add button to legend right click bar
-            dpg.add_button(label="Delete Series", user_data=dpg.last_item(), parent=dpg.last_item(),
-                           callback=lambda s, a, u: dpg.delete_item(u))
+            self.addLegendClickedMenu(dpg.last_item())
+
             old_user_data = dpg.get_item_user_data(yaxis)
             if old_user_data is None:
                 old_user_data = list()
@@ -375,8 +375,8 @@ class DearBagPlayer:
             dpg.add_line_series(datax[1], datay[1], label=label, parent=yaxis)
 
             # Add button to legend right click bar
-            dpg.add_button(label="Delete Series", user_data=dpg.last_item(), parent=dpg.last_item(),
-                           callback=lambda s, a, u: dpg.delete_item(u))
+            self.addLegendClickedMenu(dpg.last_item())
+
             old_user_data = dpg.get_item_user_data(yaxis)
             if old_user_data is None:
                 old_user_data = list()
@@ -393,12 +393,27 @@ class DearBagPlayer:
                 label = bag_name + ":" + data[2]
                 dpg.add_line_series(data[0], data[1], label=label, parent=yaxis)
                 # Add button to legend right click bar
-                dpg.add_button(label="Delete Series", user_data=dpg.last_item(), parent=dpg.last_item(),
-                               callback=lambda s, a, u: dpg.delete_item(u))
+                self.addLegendClickedMenu(dpg.last_item())
 
         # Clean drop data & fit plot regions
         self._resetValue()
         self._fitAxesData(dpg.get_item_info(yaxis)["parent"])
+
+    def addLegendClickedMenu(self, series_tag):
+        # Add button to legend right click bar
+        dpg.add_button(label="Delete Selected Series", user_data=series_tag, parent=series_tag,
+                       callback=self.deleteSelectedSeriesCb)
+        dpg.add_button(label="Delete All Series", user_data=series_tag, parent=series_tag,
+                       callback=self.deleteAllSeriesCb)
+
+    def deleteSelectedSeriesCb(self, sender, app_data, user_data):
+        """user_data stores the tag of selected series"""
+        dpg.delete_item(user_data)
+
+    def deleteAllSeriesCb(self, sender, app_data, user_data):
+        """user_data stores the tag of selected series"""
+        plot = dpg.get_item_parent(user_data)
+        dpg.delete_item(plot, children_only=True)
 
     def plotDropCallback(self, sender, app_data, user_data):
         yaxis = dpg.get_item_info(sender)["children"][1][1]
