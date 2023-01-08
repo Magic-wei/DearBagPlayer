@@ -214,6 +214,7 @@ class DearBagPlayer:
     def update(self):
         self.timelineUpdate()
         self.curPointUpdate()
+        self.checkLastPlotTab()
 
     def timelineUpdate(self):
         # Update head, index, and rendering
@@ -269,6 +270,14 @@ class DearBagPlayer:
     def getIndex(self, time_series, timestamp):
         # Support both list or np.array
         return bisect.bisect(time_series, timestamp) - 1
+
+    def checkLastPlotTab(self):
+        """
+        Check if last plot tab is closed. If yes, create a new one.
+        """
+        self.deleteClosedTab()
+        if len(dpg.get_item_children(self.tab_bar)[1]) == 1:
+            self.addPlotPageCb("Add Plot Button", None, None)
 
     # -----------------------------------------
     # Plots
@@ -491,15 +500,16 @@ class DearBagPlayer:
         :param sender: tag of the tab_bar
         :param app_data: the activated tab
         :param user_data: {"act_tab": tag, "act_plot": tag, "plot_pages": int}
-
-        TODO: Create a new tab when the last tab is deleted
         """
-        for tab in dpg.get_item_children(sender)[1]:
-            if not dpg.get_item_configuration(tab)['show']:
-                dpg.delete_item(tab)
+        self.deleteClosedTab()
         self.clearTimeLinesAndPoints()
         dpg.get_item_user_data(sender)['act_tab'] = app_data
         dpg.get_item_user_data(sender)['act_plot'] = dpg.get_item_children(app_data)[1][0]
+
+    def deleteClosedTab(self):
+        for tab in dpg.get_item_children(self.tab_bar)[1]:
+            if not dpg.get_item_configuration(tab)['show']:
+                dpg.delete_item(tab)
 
     # -----------------------------------------
     # File Import
