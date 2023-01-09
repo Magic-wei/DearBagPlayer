@@ -81,8 +81,8 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
     - [x] Load and maintain a data dict for each topic (especially with different timestamps)
     - [x] Create selectable items for each message entity that has the type of int, float or bool
     - [x] Select bag files (up to 10 each time) to load data into the data pool
+    - [x] Select dragged topic when it is not yet selected
     - [ ] Add widgets to specify topics to read from bag files (currently it has the feature of specifying topics in code)
-    - [ ] Support lists or tuples with 
   - [x] Drag and drop callbacks to plot:
     - [x] Drag time series to plot
     - [x] Drag XY plot (drop with `ctrl` key)

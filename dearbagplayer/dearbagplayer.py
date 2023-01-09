@@ -422,6 +422,24 @@ class DearBagPlayer:
     def axisDropCallback(self, sender, app_data, user_data):
         self.commonDropCallback(sender, app_data)
 
+    def dragTopicPayloadCb(self, sender, app_data, user_data):
+        """
+        :param sender: dragged selectable item (topic)
+        :param app_data: list of selected items (topics) in data pool
+        :param user_data: None
+        """
+        # Append item if not selected
+        if sender not in app_data:
+            app_data.append(sender)
+
+        # Update payload text
+        payload = dpg.get_item_children(sender, slot=3)[0]
+        payload_text = dpg.get_item_children(payload)[1][0]
+        dpg.configure_item(
+            payload_text,
+            default_value=f"{len(app_data)} series to plot"
+        )
+
     def addPlot(self, title="", x_label="", y_label="", height=200, width=300,
                 equal_aspects=False, drop_plot_enabled=True):
         
@@ -593,6 +611,7 @@ class DearBagPlayer:
                     items.append(
                         dpg.add_selectable(
                             label=entity, payload_type="plotting", callback=_update_count,
+                            drag_callback=self.dragTopicPayloadCb,
                             user_data=(
                                 database[topic]["timestamp"],
                                 database[topic][entity],
@@ -601,12 +620,10 @@ class DearBagPlayer:
                         )
                     )
 
-                    # TODO: drag to plot directly when no item is selected,
-                    #  cancel selected items when click other windows
                     with dpg.drag_payload(parent=dpg.last_item(),
-                                          drag_data=(dpg.get_item_user_data(self.data_pool_window)),
+                                          drag_data=dpg.get_item_user_data(self.data_pool_window),
                                           payload_type="plotting"):
-                        dpg.add_text(f"{len(dpg.get_item_user_data(self.data_pool_window))} series to plot")
+                        dpg.add_text("drag series to plot")
 
     # -----------------------------------------
     # Main Entry
