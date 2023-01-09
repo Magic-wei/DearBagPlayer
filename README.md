@@ -74,7 +74,7 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
 
 ## TODO
 
-- [ ] Rosbag Player
+- DearBagPlayer
   - [x] Data pool:
     - [x] Get message struct from rosbag
     - [x] Get information of all the topics in a rosbag file
