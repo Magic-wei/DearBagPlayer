@@ -432,7 +432,7 @@ class DearBagPlayer:
             plot_drop_callback = None
             axis_drop_callback = None
 
-        with dpg.plot(label=title, height=height, width=width, equal_aspects=equal_aspects, 
+        with dpg.plot(label=title, height=height, width=width, equal_aspects=equal_aspects,
                       payload_type="plotting", drop_callback=plot_drop_callback):
             dpg.add_plot_legend()
             dpg.add_plot_axis(dpg.mvXAxis, label=x_label)
@@ -470,8 +470,41 @@ class DearBagPlayer:
     def addPlotPageCb(self, sender, app_data, user_data):
         dpg.get_item_user_data(self.tab_bar)['plot_pages'] += 1
         with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}",
-                     parent=self.tab_bar, closable=True):
+                     parent=self.tab_bar, closable=True) as tab_tag:
+            dpg.bind_item_handler_registry(tab_tag, "tab_clicked_handler")
             self.createSubplots()
+
+    def tabClickedMenuCb(self, sender, app_data, user_data):
+        """
+        :param sender: tab_bar
+        :param app_data: [clicked_mouse_button (0-left, 1-right, 2-middle), clicked_tab]
+        :param user_data: None
+        """
+        pos = dpg.get_mouse_pos(local=False)
+        if app_data[0] == 1:  # right-clicked
+            with dpg.window(pos=pos, min_size=[70, 15], popup=True, autosize=False):
+                dpg.add_button(label="Rename", user_data=(app_data[1], pos), callback=self.renamePlotTabCb)
+
+    def renamePlotTabCb(self, sender, app_data, user_data):
+        """
+        :param sender: Rename button
+        :param app_data: None
+        :param user_data: [clicked_tab, clicked_pos (x, y)]
+        """
+        pos = user_data[1]
+        with dpg.window(pos=pos, min_size=[120, 15], no_title_bar=True, no_scrollbar=True) as rename_win:
+            dpg.add_input_text(label="", hint="<new name>", on_enter=True,
+                               user_data=(user_data[0], rename_win),
+                               callback=self.renameWindowCb)
+
+    def renameWindowCb(self, sender, app_data, user_data):
+        """
+        :param sender: input_text item
+        :param app_data: New name of the tab
+        :param user_data: (tab_to_rename, rename_win)
+        """
+        dpg.configure_item(user_data[0], label=app_data)
+        dpg.delete_item(user_data[1])  # delete rename window
 
     def splitHorizontallyCb(self, sender, app_data, user_data):
         subplots = dpg.get_item_user_data(self.tab_bar)['act_plot']
@@ -638,24 +671,7 @@ class DearBagPlayer:
         # Data series list
         self.data_pool_window = dpg.add_window(label="Data Pool", height=650, width=400, user_data=list())
 
-        with dpg.window(label="Plot Window", pos=(420, 0), height=800, width=810):
-            with dpg.group(horizontal=True):
-                dpg.add_button(label="Split Horizontally", callback=self.splitHorizontallyCb)
-                dpg.add_button(label="Split Vertically", callback=self.splitVerticallyCb)
-                dpg.add_button(label="Clear", callback=self.clearCb)
-
-            with dpg.tab_bar(user_data={"act_tab": None, "act_plot": None, "plot_pages": 1},
-                             reorderable=True, callback=self.updateActCb) as self.tab_bar:
-                with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}", closable=True):
-                    dpg.get_item_user_data(self.tab_bar)['act_tab'] = dpg.last_item()
-                    with dpg.subplots(rows=1, columns=1, no_title=True, height=600, width=800):
-                        dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
-                        self.addPlot()
-                dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb, trailing=True)
-
-            self.__timeline.createWidgets()
-
-        # handlers
+        # Handlers
         with dpg.handler_registry(tag="__demo_keyboard_handler"):  # show=True by default
             dpg.add_key_down_handler(key=dpg.mvKey_Control)
             dpg.add_key_release_handler(key=dpg.mvKey_Control)
@@ -666,6 +682,29 @@ class DearBagPlayer:
 
         for handler in dpg.get_item_children("__demo_keyboard_handler", 1):
             dpg.set_item_callback(handler, self.eventHandler)
+
+        with dpg.item_handler_registry(tag="tab_clicked_handler"):
+            dpg.add_item_clicked_handler(callback=self.tabClickedMenuCb)
+
+        # Plot window
+        with dpg.window(label="Plot Window", pos=(420, 0), height=800, width=810):
+            with dpg.group(horizontal=True):
+                dpg.add_button(label="Split Horizontally", callback=self.splitHorizontallyCb)
+                dpg.add_button(label="Split Vertically", callback=self.splitVerticallyCb)
+                dpg.add_button(label="Clear", callback=self.clearCb)
+
+            with dpg.tab_bar(user_data={"act_tab": None, "act_plot": None, "plot_pages": 1},
+                             reorderable=True, callback=self.updateActCb) as self.tab_bar:
+                with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}",
+                             closable=True) as tab_tag:
+                    dpg.bind_item_handler_registry(tab_tag, "tab_clicked_handler")
+                    dpg.get_item_user_data(self.tab_bar)['act_tab'] = tab_tag
+                    with dpg.subplots(rows=1, columns=1, no_title=True, height=600, width=800):
+                        dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
+                        self.addPlot()
+                dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb, trailing=True)
+
+            self.__timeline.createWidgets()
 
         # The Primary Window
         # dpg.set_primary_window("Primary Window", True)
