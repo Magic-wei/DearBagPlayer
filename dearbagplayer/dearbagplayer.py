@@ -345,6 +345,7 @@ class DearBagPlayer:
 
             # Check they belongs to the same topic and bag
             if datax[3] != datay[3] or datax[4] != datay[4]:
+                # TODO: use popup and return instead of Exception
                 raise ValueError("XY plot must comes from the same bag and topic!")
 
             # Plot line series
@@ -369,6 +370,7 @@ class DearBagPlayer:
             datay = dpg.get_item_user_data(app_data[1])
             # Check they belongs to the same topic and bag
             if datax[3] != datay[3] or datax[4] != datay[4]:
+                # TODO: use popup and return instead of Exception
                 raise ValueError("Data vs. s plot must comes from the same bag and topic!")
 
             # Plot line series
