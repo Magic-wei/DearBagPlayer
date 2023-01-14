@@ -147,7 +147,7 @@ class Timeline:
 
     def render(self, delta_t):
 
-        if self._direction == 0.0:
+        if self._direction == 0.0 or self._duration == 0.0:
             return
 
         # TODO: Consider action when abs(delta_t * self.__direction) > 2 * self.__duration
@@ -301,7 +301,7 @@ class TimelineWithSeries(Timeline):
 
     def render(self, delta_t):
 
-        if self._direction == 0.0:
+        if self._direction == 0.0 or self._duration == 0.0:
             return
 
         # TODO: Consider action when abs(delta_t * self.__direction) > 2 * self.__duration
