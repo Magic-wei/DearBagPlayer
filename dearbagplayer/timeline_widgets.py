@@ -48,10 +48,28 @@ class TimelineWidgets:
     1 3 2
     >>> timeline_widget.now()
     1.0
+    >>> timeline_widget.resetLimits(0.5, 2.4)
+    >>> print(timeline_widget.start, timeline_widget.end, timeline_widget.duration)
+    0.5 2.4 1.9
     >>> timeline_widget.play()  # default speed = 1.0
     >>> timeline_widget.render(1.2)
     >>> timeline_widget.now()
-    2.2
+    1.7
+
+    >>> timeline_widget.is_stopped = False
+    Traceback (most recent call last):
+        ...
+    AttributeError: can't set attribute
+    >>> timeline_widget.is_played = False
+    Traceback (most recent call last):
+        ...
+    AttributeError: can't set attribute
+    >>> timeline_widget.head_updated = False
+    Traceback (most recent call last):
+        ...
+    AttributeError: can't set attribute
+    >>> timeline_widget.resetHeadUpdated()
+    >>> timeline_widget.resetIsStopped()
 
     # Test widget running
     >>> import time; start = time.time()
@@ -62,7 +80,7 @@ class TimelineWidgets:
     ...         break
     >>> dpg.destroy_context()
     """
-    __slots__ = ('_timeline', 'timeline_bar', 'timeline_bar2', 'head_updated', 'is_played',
+    __slots__ = ('_timeline', 'timeline_bar', 'timeline_bar2', '_head_updated', '_is_played', '_is_stopped',
                  'text_box', 'speed_box', 'play_button', 'pause_button', 'stop_button', 'loop_checkbox')
 
     def __init__(self, start_time=0.0, duration=0.0, loop_enabled=True):
@@ -73,8 +91,9 @@ class TimelineWidgets:
         self.timeline_bar2 = None
 
         # Update
-        self.head_updated = False
-        self.is_played = False
+        self._head_updated = False
+        self._is_played = False
+        self._is_stopped = False
 
     @property
     def start(self):
@@ -101,6 +120,24 @@ class TimelineWidgets:
     @duration.setter
     def duration(self, value):
         self._timeline.duration = value
+
+    @property
+    def head_updated(self):
+        return self._head_updated
+
+    @property
+    def is_played(self):
+        return self._is_played
+
+    @property
+    def is_stopped(self):
+        return self._is_stopped
+
+    def resetHeadUpdated(self):
+        self._head_updated = False
+
+    def resetIsStopped(self):
+        self._is_stopped = False
 
     def now(self):
         return self._timeline.now()
@@ -142,7 +179,7 @@ class TimelineWidgets:
         cur_time = app_data
         self._timeline.set(cur_time)
         dpg.set_value(self.timeline_bar, (cur_time - self._timeline.start) / self._timeline.duration)
-        self.head_updated = True
+        self._head_updated = True
 
     def speedCb(self, sender, app_data, user_data):
         if not dpg.is_item_enabled(self.play_button):
@@ -161,7 +198,8 @@ class TimelineWidgets:
         self._timeline.loop_enabled = app_data
 
     def play(self):
-        self.is_played = True
+        self._is_played = True
+        self._is_stopped = False
         self._timeline.play(dpg.get_value(self.speed_box))
         if dpg.is_item_enabled(self.play_button):
             # print("Play Disabled!")
@@ -170,7 +208,8 @@ class TimelineWidgets:
             dpg.enable_item(self.stop_button)
 
     def pause(self):
-        self.is_played = False
+        self._is_played = False
+        self._is_stopped = False
         self._timeline.pause()
         if dpg.is_item_enabled(self.pause_button):
             # print("Play Disabled!")
@@ -179,19 +218,14 @@ class TimelineWidgets:
             dpg.enable_item(self.stop_button)
 
     def stop(self):
-        self.is_played = False
+        self._is_played = False
+        self._is_stopped = True
         self._timeline.stop()
         if dpg.is_item_enabled(self.stop_button):
             # print("Stop Disabled!")
             dpg.disable_item(self.stop_button)
             dpg.disable_item(self.pause_button)
             dpg.enable_item(self.play_button)
-
-    def isPlayed(self):
-        return self.is_played
-
-    def resetHeadUpdated(self):
-        self.head_updated = False
 
     def updateTimeline(self, now):
         if self.timeline_bar and self.timeline_bar2:
@@ -249,6 +283,21 @@ class TimelineWidgetsWithSeries(TimelineWidgets):
     >>> timeline_widget.render(1.2)
     >>> timeline_widget.now()
     -5.8
+
+    >>> timeline_widget.is_stopped = False
+    Traceback (most recent call last):
+        ...
+    AttributeError: can't set attribute
+    >>> timeline_widget.is_played = False
+    Traceback (most recent call last):
+        ...
+    AttributeError: can't set attribute
+    >>> timeline_widget.head_updated = False
+    Traceback (most recent call last):
+        ...
+    AttributeError: can't set attribute
+    >>> timeline_widget.resetHeadUpdated()
+    >>> timeline_widget.resetIsStopped()
 
     # Test widget running
     >>> import time; start = time.time()

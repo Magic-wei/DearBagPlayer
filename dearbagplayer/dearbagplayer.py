@@ -230,11 +230,13 @@ class DearBagPlayer:
         """
         TODO: Consider multiple timelines for multiple topics
         """
-        if self.__timeline.isPlayed():
+        if self.__timeline.is_played or self.__timeline.is_stopped:
             if len(self.msg_data_pool) == 0:
                 return
             self.vlinesTimeUpdate(self.__timeline.now())
             self.xypointsUpdate()
+            if self.__timeline.is_stopped:
+                self.__timeline.resetIsStopped()
 
     def vlinesTimeUpdate(self, timestamp):
         if not self.vlines:
