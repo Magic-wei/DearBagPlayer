@@ -473,6 +473,7 @@ class DearBagPlayer:
             label=title, height=height, width=width, equal_aspects=equal_aspects, payload_type="plotting",
             drop_callback=plot_drop_callback, parent=parent,
         )
+        dpg.add_plot_legend(parent=plot_tag)
         dpg.add_plot_axis(dpg.mvXAxis, label=x_label, parent=plot_tag)
         dpg.add_plot_axis(dpg.mvYAxis, label=y_label, payload_type="plotting",
                           parent=plot_tag, drop_callback=axis_drop_callback)
