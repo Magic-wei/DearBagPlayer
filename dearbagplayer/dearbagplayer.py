@@ -298,6 +298,12 @@ class DearBagPlayer:
         self.xypoints = None
 
     def createTimeLines(self):
+        # Check if act_plot is deleted by users
+        try:
+            dpg.get_item_info(dpg.get_item_user_data(self.tab_bar)['act_plot'])
+        except:
+            return
+
         act_plot = dpg.get_item_user_data(self.tab_bar)['act_plot']
         plots = dpg.get_item_info(act_plot)['children'][1]
 
@@ -310,6 +316,12 @@ class DearBagPlayer:
                 self.vlines.append(vline_tag)
 
     def createTimePoints(self):
+        # Check if act_plot is deleted by users
+        try:
+            dpg.get_item_info(dpg.get_item_user_data(self.tab_bar)['act_plot'])
+        except:
+            return
+
         act_plot = dpg.get_item_user_data(self.tab_bar)['act_plot']
         plots = dpg.get_item_info(act_plot)['children'][1]
 
