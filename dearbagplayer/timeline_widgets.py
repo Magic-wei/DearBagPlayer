@@ -198,6 +198,8 @@ class TimelineWidgets:
         self._timeline.loop_enabled = app_data
 
     def play(self):
+        if self._timeline.duration == 0.0:
+            return
         self._is_played = True
         self._is_stopped = False
         self._timeline.play(dpg.get_value(self.speed_box))
