@@ -580,17 +580,24 @@ class DearBagPlayer:
     def deleteClosedTab(self):
         for tab in dpg.get_item_children(self.tab_bar)[1]:
             if not dpg.get_item_configuration(tab)['show']:
+                # Stop playback before delete
+                if tab == dpg.get_item_user_data(self.tab_bar)['act_tab']:
+                    self.__timeline.stop()
                 # Remove vlines and xypoints from lists before delete tab
                 for figure in dpg.get_item_children(dpg.get_item_children(tab)[1][0])[1]:
                     if self.vlines is not None:
-                        for vline in self.vlines:
-                            if vline in dpg.get_item_children(dpg.get_item_children(figure)[1][1])[1]:
-                                self.vlines.remove(vline)
+                        self.vlines = [
+                            vline
+                            for vline in self.vlines
+                            if vline not in dpg.get_item_children(dpg.get_item_children(figure)[1][1])[1]
+                        ]
                     if self.xypoints is not None:
-                        for point in self.xypoints:
-                            if point in dpg.get_item_children(dpg.get_item_children(figure)[1][1])[1]:
-                                self.xypoints.remove(point)
-
+                        self.xypoints = [
+                            xypoint
+                            for xypoint in self.xypoints
+                            if xypoint not in dpg.get_item_children(dpg.get_item_children(figure)[1][1])[1]
+                        ]
+                # Delete tab
                 dpg.delete_item(tab)
 
     # -----------------------------------------
