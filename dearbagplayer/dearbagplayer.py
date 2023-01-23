@@ -87,7 +87,11 @@ class DearBagPlayer:
 
             if not checkTopic(topics):
                 bag.close()
-                raise ValueError('At least one given topic not found in rosbag!')
+                self.createErrorPopup(
+                    "At least one given topic not found in rosbag!",
+                    popup_width=350, popup_height=60
+                )
+                return
 
         """
         msg_data = {
@@ -347,6 +351,22 @@ class DearBagPlayer:
             dpg.set_value(item, False)
             dpg.get_item_user_data(self.data_pool_window).remove(item)
 
+    def createErrorPopup(self, error_text, popup_width=300, popup_height=60, min_size=(150, 30)):
+        viewport_pos = dpg.get_viewport_pos()
+        viewport_width = dpg.get_viewport_width()
+        viewport_height = dpg.get_viewport_height()
+        popup_pos = [
+            int(viewport_pos[0] + viewport_width // 2 - popup_width // 2),
+            int(viewport_pos[1] + viewport_height // 2 - popup_height // 2),
+        ]
+        with dpg.mutex():
+            with dpg.window(pos=popup_pos, modal=True, no_close=True, no_move=False,
+                            no_title_bar=True, no_background=False, no_resize=True,
+                            no_scrollbar=True, width=popup_width, height=popup_height,
+                            min_size=min_size) as value_error_popup:
+                dpg.add_text(error_text)
+                dpg.add_button(label="OK", callback=lambda: dpg.delete_item(value_error_popup))
+
     def commonDropCallback(self, yaxis, app_data):
 
         if self.xy_plot_enabled:
@@ -357,8 +377,11 @@ class DearBagPlayer:
 
             # Check they belongs to the same topic and bag
             if datax[3] != datay[3] or datax[4] != datay[4]:
-                # TODO: use popup and return instead of Exception
-                raise ValueError("XY plot must comes from the same bag and topic!")
+                self.createErrorPopup(
+                    "XY plot must comes from the same bag and topic!",
+                    popup_width=350, popup_height=60
+                )
+                return
 
             # Plot line series
             bag_name = os.path.splitext(datax[4])[0]
@@ -382,8 +405,11 @@ class DearBagPlayer:
             datay = dpg.get_item_user_data(app_data[1])
             # Check they belongs to the same topic and bag
             if datax[3] != datay[3] or datax[4] != datay[4]:
-                # TODO: use popup and return instead of Exception
-                raise ValueError("Data vs. s plot must comes from the same bag and topic!")
+                self.createErrorPopup(
+                    "Data vs. s plot must come from the same bag and topic!",
+                    popup_width=400, popup_height=60
+                )
+                return
 
             # Plot line series
             bag_name = os.path.splitext(datax[4])[0]
