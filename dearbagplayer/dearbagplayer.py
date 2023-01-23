@@ -531,6 +531,7 @@ class DearBagPlayer:
             dpg.add_input_text(label="", hint="<new name>", on_enter=True,
                                user_data=(user_data[0], rename_win),
                                callback=self.renameWindowCb)
+            dpg.focus_item(dpg.last_item())
 
     def renameWindowCb(self, sender, app_data, user_data):
         """
@@ -664,22 +665,24 @@ class DearBagPlayer:
     # Main Entry
     # -----------------------------------------
 
-    def eventHandler(self, sender, data):
-        # KeyDown data = [key, seconds]; KeyRelease data = key
+    def specialPlotKeyEventCb(self, sender, data):
+        """
+        Key event callback for special plot
+
+        Get event type with: `event_type = dpg.get_item_info(sender)["type"]`
+        - "mvAppItemType::mvKeyPressHandler"
+        - "mvAppItemType::mvKeyReleaseHandler"
+        - "mvAppItemType::mvKeyDownHandler" (much more frequently)
+        Use "mvAppItemType::mvKeyPressHandler" and
+
+        :param sender: handler tag
+        :param data: KeyPress/KeyRelease data - key, KeyDown data: [key, elapsed_time]
+        """
         event_type = dpg.get_item_info(sender)["type"]
-        # print(data, type(data))
-        if event_type == "mvAppItemType::mvKeyDownHandler" and data[0] == dpg.mvKey_Control:
-            self.xy_plot_enabled = True
-            # print("XY Pos Enabled!")
-        elif event_type == "mvAppItemType::mvKeyReleaseHandler" and data == dpg.mvKey_Control:
-            self.xy_plot_enabled = False
-            # print("XY Pos Disabled!")
-        if event_type == "mvAppItemType::mvKeyDownHandler" and data[0] == dpg.mvKey_Shift:
-            self.s_length_plot_enabled = True
-            # print("S length plot Enabled!")
-        elif event_type == "mvAppItemType::mvKeyReleaseHandler" and data == dpg.mvKey_Shift:
-            self.s_length_plot_enabled = False
-            # print("S length plot Disabled!")
+        if data == dpg.mvKey_Control:
+            self.xy_plot_enabled = True if event_type == "mvAppItemType::mvKeyPressHandler" else False
+        elif data == dpg.mvKey_Shift:
+            self.s_length_plot_enabled = True if event_type == "mvAppItemType::mvKeyPressHandler" else False
 
     def run(self):
         # Call this function at the beginning in every DearPyGui application
@@ -724,19 +727,17 @@ class DearBagPlayer:
         self.data_pool_window = dpg.add_window(label="Data Pool", height=650, width=400, user_data=list())
 
         # Handlers
-        with dpg.handler_registry(tag="__demo_keyboard_handler"):  # show=True by default
-            dpg.add_key_down_handler(key=dpg.mvKey_Control)
+        with dpg.handler_registry(tag="special_plot_key_event_handler"):  # show=True by default
             dpg.add_key_release_handler(key=dpg.mvKey_Control)
             dpg.add_key_press_handler(key=dpg.mvKey_Control)
-            dpg.add_key_down_handler(key=dpg.mvKey_Shift)
             dpg.add_key_release_handler(key=dpg.mvKey_Shift)
             dpg.add_key_press_handler(key=dpg.mvKey_Shift)
 
-        for handler in dpg.get_item_children("__demo_keyboard_handler", 1):
-            dpg.set_item_callback(handler, self.eventHandler)
+        for handler in dpg.get_item_children("special_plot_key_event_handler", 1):
+            dpg.set_item_callback(handler, self.specialPlotKeyEventCb)
 
         with dpg.item_handler_registry(tag="tab_clicked_handler"):
-            dpg.add_item_clicked_handler(callback=self.tabClickedMenuCb)
+            dpg.add_item_clicked_handler(button=1, callback=self.tabClickedMenuCb)
 
         # Plot window
         with dpg.window(label="Plot Window", pos=(420, 0), height=800, width=810):
