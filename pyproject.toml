@@ -28,7 +28,7 @@ dynamic = ["version", "dependencies"]
 "Bug Tracker" = "https://github.com/Magic-wei/DearBagPlayer/issues"
 
 [project.scripts]
-dearbagplayer = "dearbagplayer:main"
+dearbagplayer = "dearbagplayer.__main__:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "dearbagplayer.VERSION"}

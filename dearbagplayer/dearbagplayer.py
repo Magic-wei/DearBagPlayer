@@ -4,22 +4,18 @@ Copyright (c) 2021-2022, Wei Wang <wei.wang.bit@outlook.com>
 DearBagPlayer Application
 """
 
-import os
-import sys
-
-script_abspath = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(script_abspath)
 
 try:
-    import timeline_widgets
+    from .timeline_widgets import TimelineWidgets
 except:
-    raise ModuleNotFoundError('Module timeline_widgets not found.')
+    raise ImportError('Class TimelineWidgets not found.')
 
 import dearpygui.dearpygui as dpg
 import rosbag
 import numpy as np
 import time
 import bisect
+import os
 
 import yaml
 from yaml.loader import SafeLoader
@@ -44,7 +40,7 @@ class DearBagPlayer:
         # Timeline
         self.min_time = 0.0
         self.max_time = 0.0
-        self.__timeline = timeline_widgets.TimelineWidgets(start_time=0.0, duration=0.0, loop_enabled=True)
+        self.__timeline = TimelineWidgets(start_time=0.0, duration=0.0, loop_enabled=True)
 
         # Time series control
         self.start_time = 0.0
@@ -699,7 +695,6 @@ class DearBagPlayer:
         - "mvAppItemType::mvKeyPressHandler"
         - "mvAppItemType::mvKeyReleaseHandler"
         - "mvAppItemType::mvKeyDownHandler" (much more frequently)
-        Use "mvAppItemType::mvKeyPressHandler" and
 
         :param sender: handler tag
         :param data: KeyPress/KeyRelease data - key, KeyDown data: [key, elapsed_time]

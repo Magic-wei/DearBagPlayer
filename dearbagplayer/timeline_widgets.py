@@ -6,18 +6,13 @@ Timeline Widgets based on DearPyGui:
 - TimelineWidgetsWithSeries
 """
 
-import dearpygui.dearpygui as dpg
-import os
-import sys
-
-script_abspath = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(script_abspath)
 
 try:
-    import timeline
+    from .timeline import Timeline, TimelineWithSeries
 except:
-    raise ModuleNotFoundError('Module timeline not found.')
+    raise ImportError('Classes Timeline, TimelineWithSeries not found.')
 
+import dearpygui.dearpygui as dpg
 
 class TimelineWidgets:
     """Create Timeline Wigets given Start Time and Duration
@@ -84,7 +79,7 @@ class TimelineWidgets:
                  'text_box', 'speed_box', 'play_button', 'pause_button', 'stop_button', 'loop_checkbox')
 
     def __init__(self, start_time=0.0, duration=0.0, loop_enabled=True):
-        self._timeline = timeline.Timeline(start_time, duration, loop_enabled)
+        self._timeline = Timeline(start_time, duration, loop_enabled)
 
         # Elements
         self.timeline_bar = None
@@ -318,7 +313,7 @@ class TimelineWidgetsWithSeries(TimelineWidgets):
         super().__init__(start, duration, loop_enabled)
 
         # Override timeline instance
-        self._timeline = timeline.TimelineWithSeries(series, loop_enabled)
+        self._timeline = TimelineWithSeries(series, loop_enabled)
 
     @property
     def start(self):
