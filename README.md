@@ -83,16 +83,18 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
     - [x] Select bag files (up to 10 each time) to load data into the data pool
     - [x] Select dragged topic when it is not yet selected
     - [ ] Add widgets to specify topics to read from bag files (currently it has the feature of specifying topics in code)
+    - [ ] Create custom series from selected topics
   - [x] Drag and drop callbacks to plot:
     - [x] Drag time series to plot
     - [x] Drag XY plot (drop with `ctrl` key)
     - [x] Drag data vs. travel distance plot (drop with `shift` key)
+    - [x] Create error popup if XY plot or data vs travel distance series come from different rosbag files
   - [ ] Timeline management:
     - [x] Play forward/backward
     - [x] Modify play speed (-5 to 5)
     - [x] Sync timestamp by drag timeline
-    - [ ] Drag timestamp in a time series plot and sync timeline
     - [x] Add button to enable/disable playing in loop
+    - [ ] Add hotkeys to play/pause/stop
   - [ ] Plots:
     - [x] Create new plot tab with 2x2 subplots
     - [x] Enable drop callbacks (single time series)
