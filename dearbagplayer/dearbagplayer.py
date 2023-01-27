@@ -453,7 +453,10 @@ class DearBagPlayer:
     def deleteAllSeriesCb(self, sender, app_data, user_data):
         """user_data stores the tag of selected series"""
         plot = dpg.get_item_parent(user_data)
-        dpg.delete_item(plot, children_only=True)
+        series_list = dpg.get_item_children(plot, 1)
+        for series in series_list:
+            if series not in self.vlines and series not in self.xypoints:
+                dpg.delete_item(series)
 
     def plotDropCallback(self, sender, app_data, user_data):
         yaxis = dpg.get_item_info(sender)["children"][1][1]
