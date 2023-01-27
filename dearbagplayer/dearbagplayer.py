@@ -241,6 +241,7 @@ class DearBagPlayer:
     def vlinesTimeUpdate(self, timestamp):
         if not self.vlines:
             self.createTimeLines()
+            return
 
         for vline in self.vlines:
             # TODO: Figure out why built-in float type get errors
@@ -249,6 +250,7 @@ class DearBagPlayer:
     def xypointsUpdate(self):
         if not self.xypoints:
             self.createTimePoints()
+            return
 
         total_index = 0
         last_user_data_length = 0
