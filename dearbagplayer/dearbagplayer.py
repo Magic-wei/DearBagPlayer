@@ -301,9 +301,7 @@ class DearBagPlayer:
 
     def createTimeLines(self):
         # Check if act_plot is deleted by users
-        try:
-            dpg.get_item_info(dpg.get_item_user_data(self.tab_bar)['act_plot'])
-        except:
+        if not dpg.does_item_exist(dpg.get_item_user_data(self.tab_bar)['act_plot']):
             return
 
         act_plot = dpg.get_item_user_data(self.tab_bar)['act_plot']
@@ -319,9 +317,7 @@ class DearBagPlayer:
 
     def createTimePoints(self):
         # Check if act_plot is deleted by users
-        try:
-            dpg.get_item_info(dpg.get_item_user_data(self.tab_bar)['act_plot'])
-        except:
+        if not dpg.does_item_exist(dpg.get_item_user_data(self.tab_bar)['act_plot']):
             return
 
         act_plot = dpg.get_item_user_data(self.tab_bar)['act_plot']
@@ -644,9 +640,19 @@ class DearBagPlayer:
     # File Import
     # -----------------------------------------
 
-    def selectDataFiles(self, sender, app_data, user_data):
-        print("Sender: ", sender)
-        print("App Data: ", app_data)
+    def selectDataFilesCb(self, sender, app_data, user_data):
+        """
+        :param sender: file_dialog tag
+        :param app_data:
+            {'file_path_name': ...,
+             'file_name': ...,
+             'current_path': ...,
+             'current_filter': ...,
+             'min_size': ..., 'max_size': ...,
+             'selections': {'<file_name>': '<file_path>', ...},
+             }
+        :param user_data: None
+        """
         for key, value in app_data["selections"].items():
             self.bag_files.append(value)
             self.bag_files_name.append(key)
@@ -728,13 +734,9 @@ class DearBagPlayer:
         # Viewport menu bar
         with dpg.file_dialog(directory_selector=False, show=False, file_count=10,
                              width=600, height=600,
-                             callback=self.selectDataFiles) as file_dialog_tag:
-            dpg.add_file_extension(".*")
-            dpg.add_file_extension("", color=(150, 255, 150, 255))
-            dpg.add_file_extension("Source files (*.cpp *.h *.hpp){.cpp,.h,.hpp}", color=(0, 255, 255, 255))
-            dpg.add_file_extension(".h", color=(255, 0, 255, 255), custom_text="[header]")
-            dpg.add_file_extension(".py", color=(0, 255, 0, 255), custom_text="[Python]")
+                             callback=self.selectDataFilesCb) as file_dialog_tag:
             dpg.add_file_extension(".bag", color=(0, 255, 0, 255), custom_text="[rosbag]")
+            dpg.add_file_extension(".*")
 
         with dpg.viewport_menu_bar():
             with dpg.menu(label="Files"):
