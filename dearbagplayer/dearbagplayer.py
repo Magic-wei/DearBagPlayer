@@ -52,6 +52,13 @@ class DearBagPlayer:
         # Series selector
         self.tab_bar = None
 
+        # Resize
+        self.viewport_size = [-1, -1]
+        self.scale = [0.3, 0.7]
+        self.plot_size = [-1, -1]
+        self.plot_window_min_width = -1
+        self.data_pool_min_width = -1
+
     def initTimeline(self):
         self.max_time = 0.0
         self.min_time = 1e19
@@ -282,6 +289,68 @@ class DearBagPlayer:
         self.deleteClosedTab()
         if len(dpg.get_item_children(self.tab_bar)[1]) == 1:
             self.addPlotPageCb("Add Plot Button", None, None)
+
+    # -----------------------------------------
+    # Layout
+    # -----------------------------------------
+
+    def resizeCb(self):
+        """
+        Resize data pool window and plot window (including active plot)
+        """
+        self.viewport_size[0] = dpg.get_viewport_width()
+        self.viewport_size[1] = dpg.get_viewport_height()
+        dpg.configure_item('data_pool_window',
+                           width=int(self.scale[0]*self.viewport_size[0]),
+                           height=int(self.viewport_size[1] - 45),
+                           )
+        dpg.configure_item('plot_window',
+                           width=int(self.scale[1]*self.viewport_size[0] - 10),
+                           height=int(self.viewport_size[1] - 45),
+                           )
+        width, height = dpg.get_item_rect_size('plot_window')
+        self.plot_size[0] = width - 45
+        self.plot_size[1] = height - 150
+        plot_tag = dpg.get_item_user_data(self.tab_bar)['act_plot']
+        dpg.configure_item(plot_tag, width=self.plot_size[0], height=self.plot_size[1])
+
+    def addVerticalSeparator(self):
+        separator = dpg.add_button(width=3, height=-1)
+
+        def clickedCb():
+            while dpg.is_mouse_button_down(0):
+                # Calculate new widths
+                x_pos = dpg.get_mouse_pos(local=False)[0]
+                dpg.split_frame(delay=10)
+                x_delta = dpg.get_mouse_pos(local=False)[0] - x_pos
+                width_left = dpg.get_item_width("data_pool_window") + x_delta
+                width_right = dpg.get_item_width("plot_window") - x_delta
+
+                # Update min widths
+                self.data_pool_min_width = 300
+                self.plot_window_min_width = max(
+                    dpg.get_item_rect_size(self.__timeline.widget_group)[0] + 100,
+                    dpg.get_item_rect_size("plot_buttons")[0] + 100,
+                )
+
+                # Limit new widths
+                if width_right < self.plot_window_min_width:
+                    width_right = self.plot_window_min_width
+                    width_left = self.viewport_size[0] - width_right
+                if width_left < self.data_pool_min_width:
+                    width_left = self.data_pool_min_width
+                    width_right = self.viewport_size[0] - width_left
+
+                # Resize child windows and active plot
+                dpg.configure_item("data_pool_window", width=width_left)
+                dpg.configure_item("plot_window", width=width_right)
+                self.scale[0] = width_left / self.viewport_size[0]
+                self.scale[1] = 1 - self.scale[0]
+                self.resizeCb()
+
+        with dpg.item_handler_registry() as item_handler:
+            dpg.add_item_clicked_handler(callback=clickedCb)
+        dpg.bind_item_handler_registry(item=separator, handler_registry=item_handler)
 
     # -----------------------------------------
     # Plots
@@ -612,6 +681,7 @@ class DearBagPlayer:
         self.clearTimeLinesAndPoints()
         dpg.get_item_user_data(sender)['act_tab'] = app_data
         dpg.get_item_user_data(sender)['act_plot'] = dpg.get_item_children(app_data)[1][0]
+        self.resizeCb()
 
     def deleteClosedTab(self):
         for tab in dpg.get_item_children(self.tab_bar)[1]:
@@ -720,41 +790,18 @@ class DearBagPlayer:
         # Call this function at the beginning in every DearPyGui application
         dpg.create_context()
 
-        # Viewport
-        dpg.create_viewport(title="DearBagPlayer", width=1500, height=900, x_pos=0, y_pos=0)
-
         # Icon TODO
         # dpg.set_viewport_small_icon("path/to/icon.ico")
         # dpg.set_viewport_large_icon("path/to/icon.ico")
 
-        # Initialization
-        dpg.setup_dearpygui()
-        dpg.show_viewport()
+        # Viewport
+        dpg.create_viewport(title="DearBagPlayer", width=800, height=600, x_pos=0, y_pos=0,
+                            min_width=800, min_height=600)
 
-        # Viewport menu bar
-        with dpg.file_dialog(directory_selector=False, show=False, file_count=10,
-                             width=600, height=600,
-                             callback=self.selectDataFilesCb) as file_dialog_tag:
-            dpg.add_file_extension(".bag", color=(0, 255, 0, 255), custom_text="[rosbag]")
-            dpg.add_file_extension(".*")
+        self.viewport_size[0] = dpg.get_viewport_width()
+        self.viewport_size[1] = dpg.get_viewport_height()
 
-        with dpg.viewport_menu_bar():
-            with dpg.menu(label="Files"):
-                dpg.add_menu_item(label="Import Data", callback=lambda: dpg.show_item(file_dialog_tag))
-
-            with dpg.menu(label="Tools"):
-                dpg.add_menu_item(label="Show About", callback=lambda: dpg.show_tool(dpg.mvTool_About))
-                dpg.add_menu_item(label="Show Metrics", callback=lambda: dpg.show_tool(dpg.mvTool_Metrics))
-                dpg.add_menu_item(label="Show Documentation", callback=lambda: dpg.show_tool(dpg.mvTool_Doc))
-                dpg.add_menu_item(label="Show Debug", callback=lambda: dpg.show_tool(dpg.mvTool_Debug))
-                dpg.add_menu_item(label="Show Style Editor", callback=lambda: dpg.show_tool(dpg.mvTool_Style))
-                dpg.add_menu_item(label="Show Font Manager", callback=lambda: dpg.show_tool(dpg.mvTool_Font))
-                dpg.add_menu_item(label="Show Item Registry", callback=lambda: dpg.show_tool(dpg.mvTool_ItemRegistry))
-
-        # Data series list
-        self.data_pool_window = dpg.add_window(label="Data Pool", height=650, width=400, user_data=list())
-
-        # Handlers
+        # Plot Handlers
         with dpg.handler_registry(tag="special_plot_key_event_handler"):  # show=True by default
             dpg.add_key_release_handler(key=dpg.mvKey_Control)
             dpg.add_key_press_handler(key=dpg.mvKey_Control)
@@ -767,28 +814,71 @@ class DearBagPlayer:
         with dpg.item_handler_registry(tag="tab_clicked_handler"):
             dpg.add_item_clicked_handler(button=1, callback=self.tabClickedMenuCb)
 
-        # Plot window
-        with dpg.window(label="Plot Window", pos=(420, 0), height=800, width=810):
-            with dpg.group(horizontal=True):
-                dpg.add_button(label="Split Horizontally", callback=self.splitHorizontallyCb)
-                dpg.add_button(label="Split Vertically", callback=self.splitVerticallyCb)
-                dpg.add_button(label="Clear", callback=self.clearCb)
+        # Viewport menu bar
+        with dpg.file_dialog(directory_selector=False, show=False, file_count=10,
+                             width=600, height=400, modal=True,
+                             callback=self.selectDataFilesCb) as file_dialog_tag:
+            dpg.add_file_extension(".bag", color=(0, 255, 0, 255), custom_text="[rosbag]")
+            dpg.add_file_extension(".*")
 
-            with dpg.tab_bar(user_data={"act_tab": None, "act_plot": None, "plot_pages": 1},
-                             reorderable=True, callback=self.updateActCb) as self.tab_bar:
-                with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}",
-                             closable=True) as tab_tag:
-                    dpg.bind_item_handler_registry(tab_tag, "tab_clicked_handler")
-                    dpg.get_item_user_data(self.tab_bar)['act_tab'] = tab_tag
-                    with dpg.subplots(rows=1, columns=1, no_title=True, height=600, width=800):
-                        dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
-                        self.addPlot()
-                dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb, trailing=True)
+        with dpg.viewport_menu_bar(tag="menubar"):
+            with dpg.menu(label="Files"):
+                dpg.add_menu_item(label="Import Data", callback=lambda: dpg.show_item(file_dialog_tag))
 
-            self.__timeline.createWidgets()
+            with dpg.menu(label="Tools"):
+                dpg.add_menu_item(label="Show About", callback=lambda: dpg.show_tool(dpg.mvTool_About))
+                dpg.add_menu_item(label="Show Metrics", callback=lambda: dpg.show_tool(dpg.mvTool_Metrics))
+                dpg.add_menu_item(label="Show Documentation", callback=lambda: dpg.show_tool(dpg.mvTool_Doc))
+                dpg.add_menu_item(label="Show Debug", callback=lambda: dpg.show_tool(dpg.mvTool_Debug))
+                dpg.add_menu_item(label="Show Style Editor", callback=lambda: dpg.show_tool(dpg.mvTool_Style))
+                dpg.add_menu_item(label="Show Font Manager", callback=lambda: dpg.show_tool(dpg.mvTool_Font))
+                dpg.add_menu_item(label="Show Item Registry", callback=lambda: dpg.show_tool(dpg.mvTool_ItemRegistry))
 
-        # The Primary Window
-        # dpg.set_primary_window("Primary Window", True)
+        # Primary Window
+        dpg.add_window(tag="primary_window")
+        dpg.set_primary_window("primary_window", True)
+        dpg.configure_item("primary_window", no_scrollbar=True)
+
+        # Make top borders of child windows visible
+        dpg.add_child_window(parent="primary_window", width=10, height=10)
+
+        # Workspace
+        with dpg.group(horizontal=True, parent="primary_window"):
+            self.data_pool_window = dpg.add_child_window(
+                label="Data Pool", user_data=list(),
+                tag="data_pool_window", width=int(self.scale[0]*self.viewport_size[0]),
+            )
+
+            self.addVerticalSeparator()
+
+            with dpg.child_window(label="Plot Window", tag="plot_window",
+                                  width=int(self.scale[1]*self.viewport_size[0])):
+                with dpg.group(horizontal=True, tag="plot_buttons"):
+                    dpg.add_button(label="Split Horizontally", callback=self.splitHorizontallyCb)
+                    dpg.add_button(label="Split Vertically", callback=self.splitVerticallyCb)
+                    dpg.add_button(label="Clear", callback=self.clearCb)
+
+                with dpg.tab_bar(user_data={"act_tab": None, "act_plot": None, "plot_pages": 1},
+                                 reorderable=True, callback=self.updateActCb) as self.tab_bar:
+                    with dpg.tab(label=f"Plot {dpg.get_item_user_data(self.tab_bar)['plot_pages']}",
+                                 closable=True) as tab_tag:
+                        dpg.bind_item_handler_registry(tab_tag, "tab_clicked_handler")
+                        dpg.get_item_user_data(self.tab_bar)['act_tab'] = tab_tag
+                        with dpg.subplots(rows=1, columns=1, no_title=True):
+                            dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
+                            self.addPlot()
+                    dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb, trailing=True)
+
+                self.__timeline.createWidgets()
+
+        # Bind resize handler
+        with dpg.item_handler_registry(tag="resize_handler"):
+            dpg.add_item_resize_handler(callback=self.resizeCb)
+
+        dpg.bind_item_handler_registry("primary_window", "resize_handler")
+
+        dpg.setup_dearpygui()
+        dpg.show_viewport()
 
         # Start DPG application
         # dpg.start_dearpygui()

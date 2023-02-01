@@ -76,7 +76,8 @@ class TimelineWidgets:
     >>> dpg.destroy_context()
     """
     __slots__ = ('_timeline', 'timeline_bar', 'timeline_bar2', '_head_updated', '_is_played', '_is_stopped',
-                 'text_box', 'speed_box', 'play_button', 'pause_button', 'stop_button', 'loop_checkbox')
+                 'text_box', 'speed_box', 'play_button', 'pause_button', 'stop_button', 'loop_checkbox',
+                 'widget_group')
 
     def __init__(self, start_time=0.0, duration=0.0, loop_enabled=True):
         self._timeline = Timeline(start_time, duration, loop_enabled)
@@ -156,7 +157,7 @@ class TimelineWidgets:
             min_value=self._timeline.start, max_value=self._timeline.end,
             callback=self.timelineSettingCb
         )
-        with dpg.group(horizontal=True):
+        with dpg.group(horizontal=True) as self.widget_group:
             self.speed_box = dpg.add_drag_float(
                 label="Speed", default_value=1.0, min_value=-5.0, max_value=5.0,
                 width=50, callback=self.speedCb
