@@ -16,7 +16,6 @@ import numpy as np
 import time
 import bisect
 import os
-
 import yaml
 from yaml.loader import SafeLoader
 
@@ -520,7 +519,8 @@ class DearBagPlayer:
         plot = dpg.get_item_parent(user_data)
         series_list = dpg.get_item_children(plot, 1)
         for series in series_list:
-            if series not in self.vlines and series not in self.xypoints:
+            if (self.vlines is None or series not in self.vlines) and \
+               (self.xypoints is None or series not in self.xypoints):
                 dpg.delete_item(series)
 
     def plotDropCallback(self, sender, app_data, user_data):

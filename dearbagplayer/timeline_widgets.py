@@ -14,6 +14,7 @@ except:
 
 import dearpygui.dearpygui as dpg
 
+
 class TimelineWidgets:
     """Create Timeline Wigets given Start Time and Duration
 
