@@ -105,7 +105,7 @@ Select entities first and drag them to the plot area, drop to plot. Three types 
     - [x] Enable closing plot tab
     - [x] Enable closing all series in a plot tab
     - [x] Enable renaming plot tab
-    - [ ] Resize at runtime
+    - [x] Resize at runtime
     - [x] Split plots vertically or horizontally at runtime
     - [ ] Copy plots or save to files
   - [ ] Enable live streaming
