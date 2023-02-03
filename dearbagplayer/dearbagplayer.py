@@ -52,11 +52,17 @@ class DearBagPlayer:
         self.tab_bar = None
 
         # Resize
-        self.viewport_size = [-1, -1]
+        self.main_window_size = [-1, -1]
         self.scale = [0.3, 0.7]
         self.plot_size = [-1, -1]
         self.plot_window_min_width = -1
         self.data_pool_min_width = -1
+
+        # UI design
+        self.delta_width_vp = 17  # viewport width - non-primary window width
+        self.delta_height_vp = 40  # viewport height - non-primary window height
+        self.delta_height_child = 15  # non-primary window height - child height
+        self.vertical_separator_width = 15
 
     def initTimeline(self):
         self.max_time = 0.0
@@ -293,25 +299,39 @@ class DearBagPlayer:
     # Layout
     # -----------------------------------------
 
-    def resizeCb(self):
-        """
-        Resize data pool window and plot window (including active plot)
-        """
-        self.viewport_size[0] = dpg.get_viewport_width()
-        self.viewport_size[1] = dpg.get_viewport_height()
-        dpg.configure_item('data_pool_window',
-                           width=int(self.scale[0]*self.viewport_size[0]),
-                           height=int(self.viewport_size[1] - 45),
-                           )
-        dpg.configure_item('plot_window',
-                           width=int(self.scale[1]*self.viewport_size[0] - 10),
-                           height=int(self.viewport_size[1] - 45),
-                           )
-        width, height = dpg.get_item_rect_size('plot_window')
-        self.plot_size[0] = width - 45
-        self.plot_size[1] = height - 150
+    def resizeChildWindows(self):
+        self.main_window_size[0] = dpg.get_item_width("main_window")
+        self.main_window_size[1] = dpg.get_item_height("main_window")
+        dpg.configure_item(
+            "data_pool_window",
+            width=int(self.scale[0] * self.main_window_size[0]),
+            height=int(self.main_window_size[1] - self.delta_height_child),
+        )
+        dpg.configure_item(
+            "plot_window",
+            width=int(self.scale[1] * self.main_window_size[0] - self.vertical_separator_width - 20),
+            height=int(self.main_window_size[1] - self.delta_height_child),
+        )
+        self.resizeActPlot()
+
+    def resizeActPlot(self):
+        self.plot_size[0] = dpg.get_item_width("plot_window") - 15
+        self.plot_size[1] = dpg.get_item_height("plot_window") - 150
         plot_tag = dpg.get_item_user_data(self.tab_bar)['act_plot']
         dpg.configure_item(plot_tag, width=self.plot_size[0], height=self.plot_size[1])
+
+    def resizeMainWindowCb(self):
+        self.resizeChildWindows()
+        delta_x = dpg.get_item_pos("main_window")[0]
+        dpg.set_viewport_width(self.main_window_size[0] + self.delta_width_vp - delta_x)
+        dpg.set_viewport_height(self.main_window_size[1] + self.delta_height_vp)
+        dpg.set_viewport_pos([dpg.get_viewport_pos()[0] + delta_x, dpg.get_viewport_pos()[1]])
+
+    def resizeViewportCb(self):
+        dpg.configure_item("main_window",
+                           width=dpg.get_viewport_width() - self.delta_width_vp,
+                           height=dpg.get_viewport_height() - self.delta_height_vp)
+        self.resizeChildWindows()
 
     def addVerticalSeparator(self):
         separator = dpg.add_button(width=3, height=-1)
@@ -335,17 +355,15 @@ class DearBagPlayer:
                 # Limit new widths
                 if width_right < self.plot_window_min_width:
                     width_right = self.plot_window_min_width
-                    width_left = self.viewport_size[0] - width_right
+                    width_left = self.main_window_size[0] - width_right
                 if width_left < self.data_pool_min_width:
                     width_left = self.data_pool_min_width
-                    width_right = self.viewport_size[0] - width_left
+                    width_right = self.main_window_size[0] - width_left
 
-                # Resize child windows and active plot
-                dpg.configure_item("data_pool_window", width=width_left)
-                dpg.configure_item("plot_window", width=width_right)
-                self.scale[0] = width_left / self.viewport_size[0]
+                # Update scale and call resize callback
+                self.scale[0] = width_left / self.main_window_size[0]
                 self.scale[1] = 1 - self.scale[0]
-                self.resizeCb()
+                self.resizeMainWindowCb()
 
         with dpg.item_handler_registry() as item_handler:
             dpg.add_item_clicked_handler(callback=clickedCb)
@@ -681,7 +699,7 @@ class DearBagPlayer:
         self.clearTimeLinesAndPoints()
         dpg.get_item_user_data(sender)['act_tab'] = app_data
         dpg.get_item_user_data(sender)['act_plot'] = dpg.get_item_children(app_data)[1][0]
-        self.resizeCb()
+        self.resizeActPlot()
 
     def deleteClosedTab(self):
         for tab in dpg.get_item_children(self.tab_bar)[1]:
@@ -795,11 +813,9 @@ class DearBagPlayer:
         # dpg.set_viewport_large_icon("path/to/icon.ico")
 
         # Viewport
-        dpg.create_viewport(title="DearBagPlayer", width=800, height=600, x_pos=0, y_pos=0,
+        dpg.create_viewport(title="DearBagPlayer", resizable=False,
+                            width=800, height=600, x_pos=0, y_pos=0,
                             min_width=800, min_height=600)
-
-        self.viewport_size[0] = dpg.get_viewport_width()
-        self.viewport_size[1] = dpg.get_viewport_height()
 
         # Plot Handlers
         with dpg.handler_registry(tag="special_plot_key_event_handler"):  # show=True by default
@@ -834,25 +850,33 @@ class DearBagPlayer:
                 dpg.add_menu_item(label="Show Font Manager", callback=lambda: dpg.show_tool(dpg.mvTool_Font))
                 dpg.add_menu_item(label="Show Item Registry", callback=lambda: dpg.show_tool(dpg.mvTool_ItemRegistry))
 
-        # Primary Window
-        dpg.add_window(tag="primary_window")
-        dpg.set_primary_window("primary_window", True)
-        dpg.configure_item("primary_window", no_scrollbar=True)
+        self.delta_height_vp += dpg.get_item_height("menubar")  # add menubar height
 
-        # Make top borders of child windows visible
-        dpg.add_child_window(parent="primary_window", width=10, height=10)
+        # Primary Window
+        dpg.add_window(tag="main_window",
+                       no_scrollbar=True,
+                       no_title_bar=True,
+                       no_move=True,
+                       min_size=[dpg.get_viewport_min_width(), dpg.get_viewport_min_height()],
+                       pos=[0, dpg.get_item_height("menubar")],
+                       width=dpg.get_viewport_width() - self.delta_width_vp,
+                       height=dpg.get_viewport_height() - self.delta_height_vp,
+                       )
+
+        self.main_window_size[0] = dpg.get_item_width("main_window")
+        self.main_window_size[1] = dpg.get_item_height("main_window")
 
         # Workspace
-        with dpg.group(horizontal=True, parent="primary_window"):
+        with dpg.group(horizontal=True, parent="main_window"):
             self.data_pool_window = dpg.add_child_window(
                 label="Data Pool", user_data=list(),
-                tag="data_pool_window", width=int(self.scale[0]*self.viewport_size[0]),
+                tag="data_pool_window", width=int(self.scale[0]*self.main_window_size[0]),
             )
 
             self.addVerticalSeparator()
 
             with dpg.child_window(label="Plot Window", tag="plot_window",
-                                  width=int(self.scale[1]*self.viewport_size[0])):
+                                  width=int(self.scale[1]*self.main_window_size[0])):
                 with dpg.group(horizontal=True, tag="plot_buttons"):
                     dpg.add_button(label="Split Horizontally", callback=self.splitHorizontallyCb)
                     dpg.add_button(label="Split Vertically", callback=self.splitVerticallyCb)
@@ -873,9 +897,9 @@ class DearBagPlayer:
 
         # Bind resize handler
         with dpg.item_handler_registry(tag="resize_handler"):
-            dpg.add_item_resize_handler(callback=self.resizeCb)
-
-        dpg.bind_item_handler_registry("primary_window", "resize_handler")
+            dpg.add_item_resize_handler(callback=self.resizeMainWindowCb)
+        dpg.bind_item_handler_registry("main_window", "resize_handler")
+        dpg.set_viewport_resize_callback(callback=self.resizeViewportCb)
 
         dpg.setup_dearpygui()
         dpg.show_viewport()
