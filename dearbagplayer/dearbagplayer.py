@@ -804,6 +804,18 @@ class DearBagPlayer:
         elif data == dpg.mvKey_Shift:
             self.s_length_plot_enabled = True if event_type == "mvAppItemType::mvKeyPressHandler" else False
 
+    def playEventCb(self, sender, data):
+        """
+        Play/Pause timeline when released
+
+        :param sender: handler tag
+        :param data: KeyPress/KeyRelease data - key, KeyDown data: [key, elapsed_time]
+        """
+        if self.__timeline.is_played:
+            self.__timeline.pause()
+        else:
+            self.__timeline.play()
+
     def run(self):
         # Call this function at the beginning in every DearPyGui application
         dpg.create_context()
@@ -826,6 +838,12 @@ class DearBagPlayer:
 
         for handler in dpg.get_item_children("special_plot_key_event_handler", 1):
             dpg.set_item_callback(handler, self.specialPlotKeyEventCb)
+
+        with dpg.handler_registry(tag="play_event_handler"):
+            dpg.add_key_release_handler(key=dpg.mvKey_Spacebar)
+
+        for handler in dpg.get_item_children("play_event_handler", 1):
+            dpg.set_item_callback(handler, self.playEventCb)
 
         with dpg.item_handler_registry(tag="tab_clicked_handler"):
             dpg.add_item_clicked_handler(button=1, callback=self.tabClickedMenuCb)
