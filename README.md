@@ -12,7 +12,7 @@ pip install --extra-index-url https://rospypi.github.io/simple/ rosbag
 
 Install DearBagPlayer:
 
-```
+```shell
 pip install dearbagplayer
 ```
 
@@ -28,7 +28,7 @@ This project is still under developing, see [TODO](#TODO) for future work. **Cur
 
 ## Dependencies
 
-- Windows 10 or at least Ubuntu 18.04 LTS
+- Windows 10 or at least Ubuntu 20.04 LTS
 - Python 3 - Tested on Python 3.9, should work on other Python 3 versions as well
 - [DearPyGui](https://github.com/hoffstadt/DearPyGui)
 - NumPy
