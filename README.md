@@ -24,6 +24,8 @@ dearbagplayer
 
 See [features](#Features) below to take a quick look at the main features.
 
+Example rosbag files can be found in [Magic-wei/DearBagPlayerDemoData](https://github.com/Magic-wei/DearBagPlayerDemoData) for people who would like to try DearBagPlayer. See more details about the examples there.
+
 This project is still under developing, see [TODO](#TODO) for future work. **Currently DearBagPlayer only supports topics that contain data entities with type of int, float, bool and lists or tuples with fixed size.**
 
 ## Dependencies
