@@ -1,11 +1,4 @@
-from .dearbagplayer import DearBagPlayer
+import dearbagplayer
+import sys
 
-
-# Entry point
-def main():
-    app = DearBagPlayer()
-    app.run()
-
-
-if __name__ == '__main__':
-    main()
+sys.exit(dearbagplayer.main())
