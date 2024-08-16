@@ -29,7 +29,7 @@ dynamic = ["version"]
 "Bug Tracker" = "https://github.com/Magic-wei/DearBagPlayer/issues"
 
 [project.scripts]
-dearbagplayer = "dearbagplayer.__main__:main"
+dearbagplayer = "dearbagplayer:main"
 
 [build-system]
 requires = ["setuptools>=58.0"]
