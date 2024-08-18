@@ -1,4 +1,8 @@
 """
+Copyright (c) 2021-2024, Wei Wang <wei.wang.bit@outlook.com>
+
+RosbagParser Class
+
 msg_data = {
     "topic01": {
         "timestamp": np.array([]),

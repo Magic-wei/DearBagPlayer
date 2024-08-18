@@ -1,5 +1,5 @@
 """
-Copyright (c) 2021-2022, Wei Wang <wei.wang.bit@outlook.com>
+Copyright (c) 2021-2024, Wei Wang <wei.wang.bit@outlook.com>
 
 DearBagPlayer Application
 """
