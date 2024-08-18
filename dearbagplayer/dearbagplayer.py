@@ -545,6 +545,31 @@ class DearBagPlayer:
             self.addPlotWithParent(subplots)
         dpg.configure_item(subplots, rows=rows + 1)
 
+    def removeHorizontallyCb(self, sender, app_data, user_data):
+        subplots = dpg.get_item_user_data(self.tab_bar)['act_plot']
+        cols = dpg.get_item_configuration(subplots)['cols']
+        rows = dpg.get_item_configuration(subplots)['rows']
+        if cols <= 1:
+            return
+        plots = dpg.get_item_children(subplots)[1]
+        for row in range(rows):
+            plot_tag = plots[cols * (rows - row) - 1]
+            dpg.delete_item(plot_tag)
+        dpg.reorder_items(subplots, 1, plots)
+        dpg.configure_item(subplots, columns=cols - 1)
+
+    def removeVerticallyCb(self, sender, app_data, user_data):
+        subplots = dpg.get_item_user_data(self.tab_bar)['act_plot']
+        cols = dpg.get_item_configuration(subplots)['cols']
+        rows = dpg.get_item_configuration(subplots)['rows']
+        if rows <= 1:
+            return
+        plots = dpg.get_item_children(subplots)[1]
+        for col in range(cols):
+            plot_tag = plots[cols * (rows - 1) + col]
+            dpg.delete_item(plot_tag)
+        dpg.configure_item(subplots, rows=rows - 1)
+
     def clearCb(self, sender, app_data, user_data):
         self.__timeline.stop()
         self.clearTimeLinesAndPoints()
@@ -774,6 +799,8 @@ class DearBagPlayer:
                 with dpg.group(horizontal=True, tag="plot_buttons"):
                     dpg.add_button(label="Split Horizontally", callback=self.splitHorizontallyCb)
                     dpg.add_button(label="Split Vertically", callback=self.splitVerticallyCb)
+                    dpg.add_button(label="Remove Horizontally", callback=self.removeHorizontallyCb)
+                    dpg.add_button(label="Remove Vertically", callback=self.removeVerticallyCb)
                     dpg.add_button(label="Clear", callback=self.clearCb)
 
                 with dpg.tab_bar(user_data={"act_tab": None, "act_plot": None, "plot_pages": 1},
