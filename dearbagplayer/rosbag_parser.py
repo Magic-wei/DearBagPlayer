@@ -77,6 +77,9 @@ class RosbagParser():
                 timestamp = msg.header.stamp.secs + msg.header.stamp.nsecs * pow(10, -9)
             self.addMsgData(topic, "timestamp", timestamp)
 
+        # Convert all data to numpy arrays
+        self.convertToNumpy()
+
         # Align timestamp
         timestamp_min = np.inf
         for topic in self._msg_data.keys():
@@ -125,11 +128,18 @@ class RosbagParser():
                 self.getMsgData(topic, sub_msg, name_join(upper, key))
 
     def addMsgData(self, topic, key, data):
-        if key in self.msg_data[topic].keys():
-            # TODO: list.append() is much faster than np.append()
-            self.msg_data[topic][key] = np.append(self.msg_data[topic][key], data)
+        if key in self._msg_data[topic].keys():
+            self._msg_data[topic][key].append(data)
         else:
-            self.msg_data[topic][key] = np.array([data])
+            self._msg_data[topic][key] = [data]
+
+    def convertToNumpy(self):
+        """
+        Convert all the lists to numpy arrays for easier access
+        """
+        for topic in self._msg_data.keys():
+            for key, data in self._msg_data[topic].items():
+                self._msg_data[topic][key] = np.array(data)
 
     @staticmethod
     def hasTopics(bag: rosbag.Bag, topics: list[str]):
