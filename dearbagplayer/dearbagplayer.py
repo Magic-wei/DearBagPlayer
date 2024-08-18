@@ -133,20 +133,14 @@ class DearBagPlayer:
                 msg_data[topic][key] = np.array([data])
 
         for topic, msg, t in bag.read_messages(topics=topics):
-            # Extract msg struct
-            def getSlotStruct(msg):
-                if checkEndStatus(msg):
-                    return msg
 
-                return dict().fromkeys(msg.__slots__)
-
-            def checkEndStatus(msg):
+            def hasChildren(msg):
                 if hasattr(msg, "__slots__"):
-                    # print(f"[checkEndStatus] {msg} still has children!")
-                    return False
+                    # print(f"[hasChildren] {msg} still has children!")
+                    return True
 
-                # print(f"[checkEndStatus] {msg} found built-in type in [int, float, bool, str, list, tuple], End!")
-                return True
+                # print(f"[hasChildren] {msg} found built-in type in [int, float, bool, str, list, tuple], End!")
+                return False
 
             def name_join(upper, lower):
                 if not upper:
@@ -158,10 +152,11 @@ class DearBagPlayer:
 
             # TODO: improve speed of entities calculation
             def getMsgData(msg, upper):
-                # Check if reach end level
-                base_slots = getSlotStruct(msg)
+                # Check if reach end node for each recursion
+                base_slots = dict().fromkeys(msg.__slots__) if hasChildren(msg) else msg
+
                 if base_slots is msg:
-                    # Reach end level
+                    # Reach end node
                     if isinstance(msg, list) or isinstance(msg, tuple):
                         length = len(msg)
                         base_slots = dict()
@@ -172,28 +167,16 @@ class DearBagPlayer:
                         for k in range(0, length):
                             entities[k] = name_join(upper, k)
                             addMsgData(topic, entities[k], msg[k])
-                        return base_slots, entities
                     elif isinstance(msg, bool):
                         addMsgData(topic, upper, int(msg))
-                        return base_slots, upper
                     else:
                         # int, float, str types
                         addMsgData(topic, upper, msg)
-                        return base_slots, upper
                 else:
                     # Still has children, base_slots is dict, call getMsgData again
-                    entities = list(base_slots.keys())
-                    entities_out = list()
                     for key in base_slots.keys():
-                        idx = entities.index(key)
-                        entities[idx] = name_join(upper, key)
                         sub_msg = getattr(msg, key)
-                        base_slots[key], entities_new = getMsgData(sub_msg, entities[idx])
-                        if isinstance(entities_new, list):
-                            entities_out = entities_out + entities_new
-                        else:
-                            entities_out.append(entities_new)
-                    return base_slots, entities_out
+                        getMsgData(sub_msg, name_join(upper, key))
 
             # Full data extraction
             getMsgData(msg, topic)
