@@ -8,6 +8,7 @@ DearBagPlayer Application
 try:
     from .timeline_widgets import TimelineWidgets
     from .rosbag_parser import RosbagParser
+    from . import __version__
 except ImportError as e:
     raise ImportError(f"{str(e)}")
 
@@ -700,7 +701,7 @@ class DearBagPlayer:
         # dpg.set_viewport_large_icon("path/to/icon.ico")
 
         # Viewport
-        dpg.create_viewport(title="DearBagPlayer", resizable=False,
+        dpg.create_viewport(title=f"DearBagPlayer - {__version__}", resizable=False,
                             width=800, height=600, x_pos=0, y_pos=0,
                             min_width=800, min_height=600)
 
