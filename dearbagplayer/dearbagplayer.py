@@ -59,8 +59,8 @@ class DearBagPlayer:
         self.data_pool_min_width = -1
 
         # UI design
-        self.delta_width_vp = 17  # viewport width - non-primary window width
-        self.delta_height_vp = 40  # viewport height - non-primary window height
+        self.delta_width_vp = 0  # viewport width - non-primary window width
+        self.delta_height_vp = 0  # viewport height - non-primary window height
         self.delta_height_child = 15  # non-primary window height - child height
         self.vertical_separator_width = 15
 
@@ -701,7 +701,7 @@ class DearBagPlayer:
         # dpg.set_viewport_large_icon("path/to/icon.ico")
 
         # Viewport
-        dpg.create_viewport(title=f"DearBagPlayer - {__version__}", resizable=False,
+        dpg.create_viewport(title=f"DearBagPlayer - {__version__}", resizable=True,
                             width=800, height=600, x_pos=0, y_pos=0,
                             min_width=800, min_height=600)
 
@@ -790,13 +790,14 @@ class DearBagPlayer:
                 self.__timeline.createWidgets()
 
         # Bind resize handler
-        with dpg.item_handler_registry(tag="resize_handler"):
-            dpg.add_item_resize_handler(callback=self.resizeMainWindowCb)
-        dpg.bind_item_handler_registry("main_window", "resize_handler")
+        # with dpg.item_handler_registry(tag="resize_handler"):
+        #     dpg.add_item_resize_handler(callback=self.resizeMainWindowCb)
+        # dpg.bind_item_handler_registry("main_window", "resize_handler")
         dpg.set_viewport_resize_callback(callback=self.resizeViewportCb)
 
         dpg.setup_dearpygui()
         dpg.show_viewport()
+        self.resizeViewportCb() # fix initial viewport size issue
 
         # Start DPG application
         # dpg.start_dearpygui()
