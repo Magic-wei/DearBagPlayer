@@ -8,8 +8,8 @@ DearBagPlayer Application
 try:
     from .timeline_widgets import TimelineWidgets
     from .rosbag_parser import RosbagParser
-except:
-    raise ImportError('Class TimelineWidgets not found.')
+except ImportError as e:
+    raise ImportError(f"{str(e)}")
 
 import dearpygui.dearpygui as dpg
 import numpy as np
@@ -79,8 +79,18 @@ class DearBagPlayer:
         """
         Parse a rosbag file and return the msg data as dictionary
         """
-        self.rosbag_parser.parse(bag_file, topics)
-        return self.rosbag_parser.msg_data
+        try:
+            self.rosbag_parser.parse(bag_file, topics)
+            return self.rosbag_parser.msg_data
+        except Exception as e:
+            error_message = f"RosbagParser Error: {str(e)}"
+            print(error_message)
+            # TODO: old popup code not working anymore
+            self.createErrorPopup(
+                error_message,
+                popup_width=350, popup_height=60
+            )
+            return None
 
     # -----------------------------------------
     # Update
@@ -608,6 +618,8 @@ class DearBagPlayer:
             self.bag_files.append(bagfile)
             self.bag_files_name.append(key)
             database = self.parseBagFile(bagfile, self.topics)
+            if database is None:
+                continue
             self.msg_data_pool.append(database)
             self.createDataList(label=key, parent=self.data_pool_window, database=database)
             self.initTimeline()
