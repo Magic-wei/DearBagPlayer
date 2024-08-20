@@ -9,7 +9,7 @@ Timeline Widgets based on DearPyGui:
 
 try:
     from .timeline import Timeline, TimelineWithSeries
-except:
+except ImportError:
     raise ImportError('Classes Timeline, TimelineWithSeries not found.')
 
 import dearpygui.dearpygui as dpg
