@@ -8,6 +8,7 @@ DearBagPlayer Application
 try:
     from .timeline_widgets import TimelineWidgets
     from .rosbag_parser import RosbagParser
+    from .data_pool_window import DataPoolWindow
     from . import __version__
 except ImportError as e:
     raise ImportError(f"{str(e)}")
@@ -22,12 +23,16 @@ import os
 class DearBagPlayer:
 
     def __init__(self, topics=None):
+
+        # Call this function at the beginning in every DearPyGui application
+        dpg.create_context()
+
         # Bag info
         self.bag_files = list()
         self.bag_files_name = list()
 
         # Data
-        self.data_pool_window = None
+        self.data_pool_window = DataPoolWindow()
         self.topics = topics # TODO: self.topics is never used, and should updated at runtime
         self.msg_data_pool = list()
         self.rosbag_parser = RosbagParser()
@@ -301,13 +306,6 @@ class DearBagPlayer:
         dpg.fit_axis_data(yaxis)
         dpg.fit_axis_data(xaxis)
 
-    def _resetValue(self):
-        length = len(dpg.get_item_user_data(self.data_pool_window))
-        for i in range(0, length):
-            item = dpg.get_item_user_data(self.data_pool_window)[length - 1 - i]
-            dpg.set_value(item, False)
-            dpg.get_item_user_data(self.data_pool_window).remove(item)
-
     def createErrorPopup(self, error_text, popup_width=300, popup_height=60, min_size=(150, 30)):
         viewport_pos = dpg.get_viewport_pos()
         viewport_width = dpg.get_viewport_width()
@@ -395,7 +393,7 @@ class DearBagPlayer:
                 self.addLegendClickedMenu(dpg.last_item())
 
         # Clean drop data & fit plot regions
-        self._resetValue()
+        self.data_pool_window.resetUserData()
         self._fitAxesData(dpg.get_item_info(yaxis)["parent"])
 
     def addLegendClickedMenu(self, series_tag):
@@ -424,24 +422,6 @@ class DearBagPlayer:
 
     def axisDropCallback(self, sender, app_data, user_data):
         self.commonDropCallback(sender, app_data)
-
-    def dragTopicPayloadCb(self, sender, app_data, user_data):
-        """
-        :param sender: dragged selectable item (topic)
-        :param app_data: list of selected items (topics) in data pool
-        :param user_data: None
-        """
-        # Append item if not selected
-        if sender not in app_data:
-            app_data.append(sender)
-
-        # Update payload text
-        payload = dpg.get_item_children(sender, slot=3)[0]
-        payload_text = dpg.get_item_children(payload)[1][0]
-        dpg.configure_item(
-            payload_text,
-            default_value=f"{len(app_data)} series to plot"
-        )
 
     def addPlotToParent(self, parent, title="", x_label="", y_label="", height=200, width=300,
                     equal_aspects=False, drop_plot_enabled=True):
@@ -633,41 +613,8 @@ class DearBagPlayer:
             if database is None:
                 continue
             self.msg_data_pool.append(database)
-            self.createDataList(label=key, parent=self.data_pool_window, database=database)
+            self.data_pool_window.addNewEntries(label=key, database=database)
         self.initTimeline()
-
-    def createDataList(self, label, parent, database):
-        with dpg.tree_node(label=label, parent=parent):
-
-            def _update_count(sender, app_data, user_data):
-                if app_data:
-                    dpg.get_item_user_data(self.data_pool_window).append(sender)
-                else:
-                    dpg.get_item_user_data(self.data_pool_window).remove(sender)
-                print(dpg.get_item_user_data(self.data_pool_window))
-
-            items = list()
-            for topic in database.keys():
-                for entity in database[topic].keys():
-                    if entity == "timestamp" or isinstance(database[topic][entity][0], str):
-                        continue
-
-                    items.append(
-                        dpg.add_selectable(
-                            label=entity, payload_type="plotting", callback=_update_count,
-                            drag_callback=self.dragTopicPayloadCb,
-                            user_data=(
-                                database[topic]["timestamp"],
-                                database[topic][entity],
-                                entity, topic, label
-                            )
-                        )
-                    )
-
-                    with dpg.drag_payload(parent=dpg.last_item(),
-                                          drag_data=dpg.get_item_user_data(self.data_pool_window),
-                                          payload_type="plotting"):
-                        dpg.add_text("drag series to plot")
 
     # -----------------------------------------
     # Main Entry
@@ -704,8 +651,6 @@ class DearBagPlayer:
             self.__timeline.play()
 
     def run(self):
-        # Call this function at the beginning in every DearPyGui application
-        dpg.create_context()
 
         # file importer widget
         with dpg.file_dialog(directory_selector=False, show=False, file_count=10,
@@ -781,11 +726,8 @@ class DearBagPlayer:
         # Workspace
         main_window_group = dpg.add_group(horizontal=True, parent="main_window")
 
-        self.data_pool_window = dpg.add_child_window(
-            label="Data Pool", user_data=list(),
-            tag="data_pool_window", width=int(self.scale[0]*self.main_window_size[0]),
-            parent=main_window_group,
-        )
+        self.data_pool_window.setWidth(int(self.scale[0]*self.main_window_size[0]))
+        self.data_pool_window.submit(main_window_group)
 
         self.addVerticalSeparator(parent=main_window_group)
 
