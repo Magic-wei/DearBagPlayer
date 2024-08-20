@@ -440,24 +440,7 @@ class DearBagPlayer:
             default_value=f"{len(app_data)} series to plot"
         )
 
-    def addPlot(self, title="", x_label="", y_label="", height=200, width=300,
-                equal_aspects=False, drop_plot_enabled=True):
-        
-        if drop_plot_enabled:
-            plot_drop_callback = self.plotDropCallback
-            axis_drop_callback = self.axisDropCallback
-        else:
-            plot_drop_callback = None
-            axis_drop_callback = None
-
-        with dpg.plot(label=title, height=height, width=width, equal_aspects=equal_aspects,
-                      payload_type="plotting", drop_callback=plot_drop_callback):
-            dpg.add_plot_legend()
-            dpg.add_plot_axis(dpg.mvXAxis, label=x_label)
-            dpg.add_plot_axis(dpg.mvYAxis, label=y_label, payload_type="plotting",
-                              drop_callback=axis_drop_callback)
-
-    def addPlotWithParent(self, parent, title="", x_label="", y_label="", height=200, width=300,
+    def addPlotToParent(self, parent, title="", x_label="", y_label="", height=200, width=300,
                     equal_aspects=False, drop_plot_enabled=True):
 
         if drop_plot_enabled:
@@ -479,8 +462,8 @@ class DearBagPlayer:
         return plot_tag
 
     def createSubplots(self, rows=1, columns=1):
-        with dpg.subplots(rows=rows, columns=columns, no_title=True, height=600, width=800, no_resize=False):
-            self.addPlot()
+        dpg.add_subplots(rows=rows, columns=columns, no_title=True, height=600, width=800, no_resize=False)
+        self.addPlotToParent(dpg.last_item())
 
     # -----------------------------------------
     # Plot Canvas Control Board
@@ -532,7 +515,7 @@ class DearBagPlayer:
         rows = dpg.get_item_configuration(subplots)['rows']
         plots = dpg.get_item_children(subplots)[1]
         for row in range(rows):
-            plot_tag = self.addPlotWithParent(subplots)
+            plot_tag = self.addPlotToParent(subplots)
             plots.insert(cols * (rows - row), plot_tag)
         dpg.reorder_items(subplots, 1, plots)
         dpg.configure_item(subplots, columns=cols + 1)
@@ -542,7 +525,7 @@ class DearBagPlayer:
         cols = dpg.get_item_configuration(subplots)['cols']
         rows = dpg.get_item_configuration(subplots)['rows']
         for col in range(cols):
-            self.addPlotWithParent(subplots)
+            self.addPlotToParent(subplots)
         dpg.configure_item(subplots, rows=rows + 1)
 
     def removeHorizontallyCb(self, sender, app_data, user_data):
@@ -809,9 +792,9 @@ class DearBagPlayer:
                                  closable=True) as tab_tag:
                         dpg.bind_item_handler_registry(tab_tag, "tab_clicked_handler")
                         dpg.get_item_user_data(self.tab_bar)['act_tab'] = tab_tag
-                        with dpg.subplots(rows=1, columns=1, no_title=True):
-                            dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
-                            self.addPlot()
+                        dpg.add_subplots(rows=1, columns=1, no_title=True)
+                        dpg.get_item_user_data(self.tab_bar)['act_plot'] = dpg.last_item()
+                        self.addPlotToParent(dpg.last_item())
                     dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb, trailing=True)
 
                 self.__timeline.createWidgets()
