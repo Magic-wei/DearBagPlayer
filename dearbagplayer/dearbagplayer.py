@@ -631,7 +631,7 @@ class DearBagPlayer:
                 continue
             self.msg_data_pool.append(database)
             self.createDataList(label=key, parent=self.data_pool_window, database=database)
-            self.initTimeline()
+        self.initTimeline()
 
     def createDataList(self, label, parent, database):
         with dpg.tree_node(label=label, parent=parent):
