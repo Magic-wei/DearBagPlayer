@@ -753,7 +753,7 @@ class DearBagPlayer:
                     self.addPlotToParent(dpg.last_item())
                 dpg.add_tab_button(label="+", tag="Add Plot Button", callback=self.addPlotPageCb, trailing=True)
 
-            self.__timeline.createWidgets()
+        self.__timeline.submit("plot_window")
 
         # Bind resize handler
         # with dpg.item_handler_registry(tag="resize_handler"):

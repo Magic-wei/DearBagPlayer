@@ -25,8 +25,8 @@ class TimelineWidgets:
     >>> timeline_widget = TimelineWidgets()  # start_time=0, duration=0 by default
 
     # Set up DearPyGui window
-    >>> with dpg.window(label="Timeline", tag="Primary Window"):
-    ...     timeline_widget.createWidgets()
+    >>> primary_window = dpg.add_window(label="Timeline", tag="Primary Window")
+    >>> timeline_widget.submit("Primary Window")
     >>> dpg.create_viewport(title="Timeline Test", height=400, width=600, x_pos=0, y_pos=0)
     >>> dpg.set_primary_window("Primary Window", True)
     >>> dpg.setup_dearpygui()
@@ -78,7 +78,7 @@ class TimelineWidgets:
     """
     __slots__ = ('_timeline', 'timeline_bar', 'timeline_bar2', '_head_updated', '_is_played', '_is_stopped',
                  'text_box', 'speed_box', 'play_button', 'pause_button', 'stop_button', 'loop_checkbox',
-                 'widget_group')
+                 'widget_group', '_stage')
 
     def __init__(self, start_time=0.0, duration=0.0, loop_enabled=True):
         self._timeline = Timeline(start_time, duration, loop_enabled)
@@ -91,6 +91,14 @@ class TimelineWidgets:
         self._head_updated = False
         self._is_played = False
         self._is_stopped = False
+
+        # Staging
+        with dpg.stage() as self._stage:
+            self.createWidgets()
+
+    @property
+    def stage(self):
+        return self._stage
 
     @property
     def start(self):
@@ -156,7 +164,7 @@ class TimelineWidgets:
         self.timeline_bar2 = dpg.add_slider_float(
             label="", default_value=self._timeline.start,
             min_value=self._timeline.start, max_value=self._timeline.end,
-            callback=self.timelineSettingCb
+            callback=self.timelineSettingCb,
         )
         with dpg.group(horizontal=True) as self.widget_group:
             self.speed_box = dpg.add_drag_float(
@@ -171,6 +179,17 @@ class TimelineWidgets:
             self.loop_checkbox = dpg.add_checkbox(label="Play in loop", callback=self.loopCb,
                                                   default_value=self._timeline.loop_enabled)
             dpg.disable_item(self.pause_button)
+
+    def submit(self, parent):
+        """
+        Can only submit once
+        """
+        if len(dpg.get_item_children(self.stage)[1]) == 0:
+            raise Exception("[TimelineWidgets] Cannot submit without children!")
+        dpg.push_container_stack(parent)
+        dpg.unstage(self.stage)
+        dpg.pop_container_stack()
+        dpg.delete_item(self.stage, children_only=True)
 
     def timelineSettingCb(self, sender, app_data, user_data):
         cur_time = app_data
@@ -254,7 +273,7 @@ class TimelineWidgetsWithSeries(TimelineWidgets):
     # Init DearPyGui and create TimelineWidgetsWithSeries instance
     >>> dpg.create_context()
     >>> import numpy as np
-    >>> series = np.linspace(0.0, 10.0, 50)
+    >>> series = np.linspace(0.0, 10.0, 50).tolist()
     >>> timeline_widget = TimelineWidgetsWithSeries(series)
 
     # Set up DearPyGui window
