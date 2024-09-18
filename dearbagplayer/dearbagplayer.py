@@ -10,6 +10,7 @@ try:
     from .rosbag_parser import RosbagParser
     from .data_pool_window import DataPoolWindow
     from .plot_window import PlotWindow
+    from .config import Config
     from . import __version__
 except ImportError as e:
     raise ImportError(f"{str(e)}")
@@ -60,10 +61,11 @@ class DearBagPlayer:
         self.data_pool_min_width = -1
 
         # UI design
-        self.delta_width_vp = 0  # viewport width - non-primary window width
-        self.delta_height_vp = 0  # viewport height - non-primary window height
-        self.delta_height_child = 15  # non-primary window height - child height
-        self.vertical_separator_width = 15
+        self.config = Config(verbose=True)
+        self.delta_width_vp = self.config.delta_width_vp  # viewport width - non-primary window width
+        self.delta_height_vp = self.config.delta_height_vp  # viewport height - non-primary window height
+        self.delta_height_child = self.config.delta_height_child  # non-primary window height - child height
+        self.vertical_separator_width = self.config.vertical_separator_width
 
     def initTimeline(self):
         self.max_time = 0.0
@@ -228,7 +230,7 @@ class DearBagPlayer:
         # dpg.set_viewport_large_icon("path/to/icon.ico")
 
         # Viewport
-        dpg.create_viewport(title=f"DearBagPlayer - {__version__}", resizable=True,
+        dpg.create_viewport(title=f"DearBagPlayer - {__version__}", resizable=self.config.enable_vp_resize,
                             width=800, height=600, x_pos=0, y_pos=0,
                             min_width=800, min_height=600)
 
@@ -274,10 +276,12 @@ class DearBagPlayer:
         self.plot_window.submit(main_window_group)
 
         # Bind resize handler
-        # with dpg.item_handler_registry(tag="resize_handler"):
-        #     dpg.add_item_resize_handler(callback=self.resizeMainWindowCb)
-        # dpg.bind_item_handler_registry("main_window", "resize_handler")
-        dpg.set_viewport_resize_callback(callback=self.resizeViewportCb)
+        if self.config.enable_vp_resize:
+            dpg.set_viewport_resize_callback(callback=self.resizeViewportCb)
+        else:
+            with dpg.item_handler_registry(tag="resize_handler"):
+                dpg.add_item_resize_handler(callback=self.resizeMainWindowCb)
+            dpg.bind_item_handler_registry("main_window", "resize_handler")
 
         dpg.setup_dearpygui()
         dpg.show_viewport()
