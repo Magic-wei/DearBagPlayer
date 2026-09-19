@@ -6,11 +6,11 @@ authors = [
     { name="Wei Wang", email="wei.wang.bit@outlook.com" },
 ]
 license = { text = "MIT" }
-requires-python = ">= 3.9"
+requires-python = ">= 3.10"
 dependencies = [
-    "dearpygui>=1.11.1",
+    "dearpygui>=1.11.1,<2",
     "numpy>=2.0.1",
-    "rosbag>=1.15.11",
+    "rosbags>=0.11.2",
 ]
 keywords = [
     "DearPyGui",
@@ -40,3 +40,11 @@ version = {attr = "dearbagplayer.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["dearbagplayer"]
+
+[tool.rye]
+dev-dependencies = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

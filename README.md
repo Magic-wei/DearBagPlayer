@@ -6,8 +6,7 @@ DearBagPlayer is a flexible rosbag player based on Dear PyGui in Python.
 Install dependencies:
 
 ```shell
-pip install dearpygui numpy
-pip install --extra-index-url https://rospypi.github.io/simple/ rosbag
+pip install dearpygui numpy rosbags
 ```
 
 Install DearBagPlayer:
@@ -31,16 +30,18 @@ This project is still under developing, see [TODO](#TODO) for future work. **Cur
 ## Dependencies
 
 - Windows 10 or at least Ubuntu 20.04 LTS
-- Python 3 - Tested on Python 3.9, should work on other Python 3 versions as well
+- Python >= 3.10 - Tested on Python 3.12
 - [DearPyGui](https://github.com/hoffstadt/DearPyGui)
 - NumPy
-- rosbag
+- [rosbags](https://gitlab.com/ternaris/rosbags)
 
 ## Features
 
 ### Load data from rosbag files
 
-Load up to 10 bag files each time to load data into the data pool.
+Load up to 10 bag files each time to load data into the data pool. Both ROS1 (`.bag` files) and ROS2 (rosbag2 directories containing `metadata.yaml`) bags are supported. ROS1 bags are imported via `Files -> Import ROS1 Bag(s)`, ROS2 bags via `Files -> Import ROS2 Bag Folder`.
+
+If a ROS2 bag does not embed message definitions, a popup will offer to import the corresponding `.msg` files via `Files -> Import Message Definitions Folder`; after loading the definitions the bag import is retried automatically. Every `.msg` file must be located in a `<package>/msg` directory.
 
 <img src="./images/open_bags.gif" style="width:80%;" />
 

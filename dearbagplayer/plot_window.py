@@ -203,7 +203,12 @@ class PlotWindow:
             xy_index = self.xypoints.index(xypoint) - total_index
             topic = user_data[xy_index][3]
             bag_name = user_data[xy_index][4]
-            bag_index = bag_files_name.index(bag_name)
+            try:
+                bag_index = bag_files_name.index(bag_name)
+            except ValueError:
+                continue
+            if bag_index >= len(msg_data_pool) or topic not in msg_data_pool[bag_index]:
+                continue
             index = self.getIndex(msg_data_pool[bag_index][topic]["timestamp"], self.timeline.now())
             # timestamp = msg_data_pool[0][topic]["timestamp"][index]
             dpg.set_value(xypoint, [user_data[xy_index][0][index], user_data[xy_index][1][index]])
@@ -278,7 +283,13 @@ class PlotWindow:
         dpg.fit_axis_data(yaxis)
         dpg.fit_axis_data(xaxis)
 
-    def createErrorPopup(self, error_text, popup_width=300, popup_height=60, min_size=(150, 30)):
+    def createButtonPopup(self, text, buttons, popup_width=300, popup_height=60, min_size=(150, 30)):
+        """
+        Create a modal popup with a row of buttons.
+
+        :param buttons: list of (label, callback) tuples. The popup is closed
+            before the callback runs; a None callback just closes the popup.
+        """
         viewport_pos = dpg.get_viewport_pos()
         viewport_width = dpg.get_viewport_width()
         viewport_height = dpg.get_viewport_height()
@@ -286,13 +297,29 @@ class PlotWindow:
             int(viewport_pos[0] + viewport_width // 2 - popup_width // 2),
             int(viewport_pos[1] + viewport_height // 2 - popup_height // 2),
         ]
+
+        def clickedCb(sender, app_data, user_data):
+            popup_tag, callback = user_data
+            dpg.delete_item(popup_tag)
+            if callback is not None:
+                callback()
+
         with dpg.mutex():
             with dpg.window(pos=popup_pos, modal=True, no_close=True, no_move=False,
                             no_title_bar=True, no_background=False, no_resize=True,
                             no_scrollbar=True, width=popup_width, height=popup_height,
                             min_size=min_size) as value_error_popup:
-                dpg.add_text(error_text)
-                dpg.add_button(label="OK", callback=lambda: dpg.delete_item(value_error_popup))
+                dpg.add_text(text)
+                with dpg.group(horizontal=True):
+                    for label, callback in buttons:
+                        dpg.add_button(label=label, callback=clickedCb,
+                                       user_data=(value_error_popup, callback))
+
+    def createErrorPopup(self, error_text, popup_width=300, popup_height=60, min_size=(150, 30)):
+        self.createButtonPopup(
+            error_text, [("OK", None)],
+            popup_width=popup_width, popup_height=popup_height, min_size=min_size
+        )
 
     def commonDropCallback(self, yaxis, app_data):
 
