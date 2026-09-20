@@ -16,6 +16,8 @@ msg_data = {
 """
 
 import dataclasses
+import os
+import sqlite3
 from pathlib import Path
 
 import numpy as np
@@ -29,6 +31,52 @@ _DEFAULT_TYPESTORES = [
     Stores.ROS2_GALACTIC,
     Stores.ROS2_IRON,
 ]
+
+# Topic import heuristics (a future Settings dialog may make these configurable)
+# A topic is considered too large if its estimated serialized data volume or
+# its expanded entity count per message exceeds these thresholds.
+LARGE_TOPIC_BYTES = 50 * 1024**2
+LARGE_TOPIC_ENTITIES = 100000
+
+# A header timestamp is only trusted when it is within this offset of the bag
+# timestamp. Otherwise the sensor clock is considered unsynchronized (e.g.
+# device uptime or GPS week time instead of Unix epoch), which would break the
+# shared timeline, and the bag timestamp is used instead.
+MAX_HEADER_BAG_OFFSET = 3600
+
+
+@dataclasses.dataclass
+class TopicStats:
+    """Per-topic statistics used to decide whether a topic should be imported."""
+
+    topic: str
+    msgtype: str
+    msgcount: int
+    byte_size: int
+    entity_count: int
+    is_large: bool = False
+    large_reasons: list = dataclasses.field(default_factory=list)
+
+
+def getROS2TopicSizes(bag_path):
+    """
+    Exact per-topic data sizes from uncompressed rosbag2 sqlite files.
+    Returns {topic_name: total_bytes}; empty dict when not available
+    (e.g. compressed bags), in which case sizes are estimated by sampling.
+    """
+    sizes = dict()
+    for db3_file in Path(bag_path).glob('*.db3'):
+        try:
+            with sqlite3.connect(db3_file) as conn:
+                rows = conn.execute(
+                    'SELECT topics.name, SUM(LENGTH(messages.data)) FROM messages '
+                    'JOIN topics ON messages.topic_id = topics.id GROUP BY topics.id'
+                )
+                for name, total in rows:
+                    sizes[name] = sizes.get(name, 0) + (total or 0)
+        except sqlite3.Error:
+            continue
+    return sizes
 
 
 class MissingMessageDefinitionError(ValueError):
@@ -108,29 +156,55 @@ class RosbagParser():
             if path.is_file() and path.suffix == '.msg':
                 msg_files.append(path)
             elif path.is_dir():
-                msg_files.extend(sorted(path.rglob('*.msg')))
+                print(f"[RosbagParser] Scanning {path} for .msg files ...", flush=True)
+                msg_files.extend(self.scanMessageFiles(path))
             else:
-                print(f"[RosbagParser] Message definitions path does not exist: {path}")
+                print(f"[RosbagParser] Message definitions path does not exist: {path}", flush=True)
 
-        loaded = 0
+        # Deduplicate types, e.g. workspace_root/src and workspace_root/install
+        definitions = dict()
         for msg_file in msg_files:
             if msg_file.parent.name != 'msg':
-                print(f"[RosbagParser] Skip {msg_file}: not inside a 'msg' directory")
+                print(f"[RosbagParser] Skip {msg_file}: not inside a 'msg' directory", flush=True)
                 continue
             msgtype = f"{msg_file.parent.parent.name}/msg/{msg_file.stem}"
+            definitions.setdefault(msgtype, msg_file)
+
+        print(f"[RosbagParser] Parsing {len(definitions)} unique message definition(s) ...", flush=True)
+        loaded = 0
+        for msgtype, msg_file in sorted(definitions.items()):
             try:
                 self._custom_types.update(get_types_from_msg(msg_file.read_text(), msgtype))
                 loaded += 1
             except Exception as e:
-                print(f"[RosbagParser] Failed to parse {msg_file}: {e}")
+                print(f"[RosbagParser] Failed to parse {msg_file}: {e}", flush=True)
+            if loaded % 1000 == 0 and loaded:
+                print(f"[RosbagParser]   parsed {loaded}/{len(definitions)} definitions ...", flush=True)
 
         for path in paths:
             path = Path(path).expanduser()
             if path not in self._msg_defs_paths:
                 self._msg_defs_paths.append(path)
 
-        print(f"[RosbagParser] Loaded {loaded} custom message definition(s)")
+        print(f"[RosbagParser] Loaded {loaded} custom message definition(s)", flush=True)
         return loaded
+
+    @staticmethod
+    def scanMessageFiles(root, skip_dirs=('build', '.git', '.venv', 'node_modules', '__pycache__')):
+        """
+        Recursively collect .msg files, skipping build/generated and hidden
+        directories to keep large workspace folders fast to scan.
+        """
+        msg_files = list()
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = sorted(
+                d for d in dirnames
+                if d not in skip_dirs and not d.startswith('.')
+            )
+            for name in sorted(filenames):
+                if name.endswith('.msg'):
+                    msg_files.append(Path(dirpath) / name)
+        return msg_files
 
     def parse(self, bag_file=None, topics=None):
         """
@@ -158,6 +232,11 @@ class RosbagParser():
                 connections.append(connection)
                 self._msg_data.setdefault(connection.topic, dict())
 
+            expected = sum(connection.msgcount for connection in connections)
+            print(f"[RosbagParser] Parsing {self._bag_file} ({expected} messages, "
+                  f"{len(connections)} connection(s)) ...", flush=True)
+
+            message_count = 0
             for connection, timestamp, rawdata in reader.messages(connections=connections):
 
                 try:
@@ -170,6 +249,10 @@ class RosbagParser():
 
                 # Timestamp (prefer header stamp when available)
                 self.addMsgData(connection.topic, "timestamp", self.getTimestamp(msg, timestamp * pow(10, -9)))
+
+                message_count += 1
+                if message_count % 10000 == 0:
+                    print(f"[RosbagParser]   parsed {message_count}/{expected} messages ...", flush=True)
         finally:
             reader.close()
 
@@ -179,7 +262,97 @@ class RosbagParser():
         # Align timestamp
         self.alignTimestamp()
 
-        print("Data loaded!")
+        print("Data loaded!", flush=True)
+
+    def getTopicStats(self, bag_file=None,
+                      large_bytes=LARGE_TOPIC_BYTES,
+                      large_entities=LARGE_TOPIC_ENTITIES,
+                      sample_count=2, max_scan=5000, max_scan_bytes=64 * 1024**2):
+        """
+        Collect statistics for all topics of a bag so the user can decide
+        which topics to import before the (potentially slow) full parse.
+
+        Byte sizes are exact for uncompressed rosbag2 files and estimated by
+        sampling otherwise. Entity counts are estimated by deserializing a few
+        messages per topic and counting the leaf entities they expand to.
+
+        :return: list of TopicStats, largest first
+        """
+        if bag_file is not None:
+            self.bag_file = bag_file
+
+        reader = self.openReader(self._bag_file)
+        try:
+            stats = [
+                TopicStats(topic=conn.topic, msgtype=conn.msgtype, msgcount=conn.msgcount,
+                           byte_size=0, entity_count=0)
+                for conn in reader.connections
+            ]
+            conn_index = {id(conn): index for index, conn in enumerate(reader.connections)}
+
+            # Exact sizes for uncompressed rosbag2 recordings
+            if reader.is2:
+                sizes = getROS2TopicSizes(self._bag_file)
+                for stat in stats:
+                    stat.byte_size = sizes.get(stat.topic, 0)
+
+            # Sample messages for entity counts (and byte sizes when unknown)
+            samples = [[] for _ in stats]
+            remaining = set(range(len(stats)))
+            scanned = 0
+            scanned_bytes = 0
+            for conn, timestamp, rawdata in reader.messages():
+                index = conn_index.get(id(conn))
+                if index is not None and index in remaining:
+                    entity_count = 0
+                    try:
+                        entity_count = self.countEntities(reader.deserialize(rawdata, conn.msgtype))
+                    except Exception:
+                        # e.g. missing message definition; stats remain usable
+                        pass
+                    samples[index].append((len(rawdata), entity_count))
+                    if len(samples[index]) >= sample_count:
+                        remaining.discard(index)
+                        if not remaining:
+                            break
+
+                scanned += 1
+                scanned_bytes += len(rawdata)
+                if scanned >= max_scan or scanned_bytes >= max_scan_bytes:
+                    break
+
+            for stat, sampled in zip(stats, samples):
+                if not sampled:
+                    continue
+                if stat.byte_size == 0:
+                    avg_size = sum(x[0] for x in sampled) / len(sampled)
+                    stat.byte_size = int(avg_size * stat.msgcount)
+                stat.entity_count = max(x[1] for x in sampled)
+
+                if stat.byte_size > large_bytes:
+                    stat.large_reasons.append(f"data size ~{stat.byte_size / 1024**2:.1f} MB")
+                if stat.entity_count > large_entities:
+                    stat.large_reasons.append(f"~{stat.entity_count} entities per message")
+                stat.is_large = bool(stat.large_reasons)
+        finally:
+            reader.close()
+
+        stats.sort(key=lambda x: (x.is_large, x.byte_size), reverse=True)
+        return stats
+
+    @classmethod
+    def countEntities(cls, msg):
+        """
+        Count the leaf entities a message expands to (mirrors getMsgData),
+        used to detect topics that would flood the entity/topic list.
+        """
+        if cls.hasChildren(msg):
+            return sum(cls.countEntities(getattr(msg, key)) for key in cls.getChildrenKeys(msg))
+        if isinstance(msg, np.ndarray) and msg.dtype.kind in 'biuf':
+            return len(msg)
+        if isinstance(msg, (list, tuple, np.ndarray)):
+            return sum(cls.countEntities(msg[k]) for k in range(len(msg)))
+        return 1
 
     def openReader(self, bag_file):
         """
@@ -223,16 +396,23 @@ class RosbagParser():
     @staticmethod
     def getTimestamp(msg, bag_timestamp):
         """
-        Get timestamp from message header if available, otherwise use bag timestamp
+        Get timestamp from message header if it is available and synchronized
+        with the recording, otherwise use the bag timestamp.
+
+        Some drivers publish header stamps in a different time base (zero,
+        device uptime or GPS week time). Mixing those with bag timestamps of
+        other topics would break the shared timeline, so they are ignored.
         """
         header = getattr(msg, 'header', None)
         stamp = getattr(header, 'stamp', None) if header is not None else None
-        if stamp is None:
-            return bag_timestamp
+        if stamp is not None:
+            secs = getattr(stamp, 'sec', getattr(stamp, 'secs', 0))
+            nsecs = getattr(stamp, 'nanosec', getattr(stamp, 'nsecs', 0))
+            header_timestamp = secs + nsecs * pow(10, -9)
+            if header_timestamp > 0 and abs(header_timestamp - bag_timestamp) <= MAX_HEADER_BAG_OFFSET:
+                return header_timestamp
 
-        secs = getattr(stamp, 'sec', getattr(stamp, 'secs', 0))
-        nsecs = getattr(stamp, 'nanosec', getattr(stamp, 'nsecs', 0))
-        return secs + nsecs * pow(10, -9)
+        return bag_timestamp
 
     # TODO: improve speed of entities calculation
     def getMsgData(self, topic, msg, upper):

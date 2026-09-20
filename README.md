@@ -41,6 +41,8 @@ This project is still under developing, see [TODO](#TODO) for future work. **Cur
 
 Load up to 10 bag files each time to load data into the data pool. Both ROS1 (`.bag` files) and ROS2 (rosbag2 directories containing `metadata.yaml`) bags are supported. ROS1 bags are imported via `Files -> Import ROS1 Bag(s)`, ROS2 bags via `Files -> Import ROS2 Bag Folder`.
 
+Before a bag is parsed, a topic selection window shows all topics with message count, estimated data size and entities per message. Topics that are too large are deselected by default with a warning, since importing them significantly increases import time and pollutes the topic list.
+
 If a ROS2 bag does not embed message definitions, a popup will offer to import the corresponding `.msg` files via `Files -> Import Message Definitions Folder`; after loading the definitions the bag import is retried automatically. Every `.msg` file must be located in a `<package>/msg` directory.
 
 <img src="./images/open_bags.gif" style="width:80%;" />

@@ -10,6 +10,7 @@ try:
     from .rosbag_parser import RosbagParser, MissingMessageDefinitionError
     from .data_pool_window import DataPoolWindow
     from .plot_window import PlotWindow
+    from .topic_select_window import TopicSelectWindow
     from .config import Config
     from . import __version__
 except ImportError as e:
@@ -40,10 +41,17 @@ class DearBagPlayer:
         # Bag import that failed due to missing message definitions (label, path)
         self.pending_bag = None
 
+        # Bag import queue: [(label, path), ...] processed one by one
+        self.import_queue = list()
+        self.import_loaded = False
+
         # Import dialogs (created in initDialogs())
         self.file_dialog_tag = None
         self.folder_dialog_tag = None
         self.msg_defs_dialog_tag = None
+
+        # Topic selection window
+        self.topic_select_window = TopicSelectWindow()
 
         # Timeline
         self.min_time = 0.0
@@ -109,7 +117,9 @@ class DearBagPlayer:
             # Offer to import the message definitions and retry the import
             error_message = f"RosbagParser Error: {str(e)}"
             print(error_message)
-            self.pending_bag = (label, bag_file)
+            # Cache the topic selection so loading the definitions can retry
+            # directly without asking the user to select topics again
+            self.pending_bag = (label, bag_file, topics)
             self.plot_window.createButtonPopup(
                 f"Missing message definition for:\n{e.msgtype}\n\nImport the message definitions folder and retry?",
                 buttons=[
@@ -274,7 +284,16 @@ class DearBagPlayer:
         :param user_data: None
         """
         folder = self.getSelectedFolder(app_data)
-        count = self.rosbag_parser.loadMessageDefinitions([folder]) if folder else 0
+        if folder is None:
+            print(f"[DearBagPlayer] No folder selected, app_data={app_data}", flush=True)
+        else:
+            print(f"[DearBagPlayer] Message definitions folder: {folder}", flush=True)
+
+        self.setBusy("Loading message definitions ...")
+        try:
+            count = self.rosbag_parser.loadMessageDefinitions([folder]) if folder else 0
+        finally:
+            self.setBusy()
         if count == 0:
             self.plot_window.createErrorPopup(
                 "No .msg message definitions found in the selected folder!",
@@ -282,13 +301,18 @@ class DearBagPlayer:
             )
             return
 
-        print(f"Loaded {count} custom message definition(s) from {folder}")
+        print(f"Loaded {count} custom message definition(s) from {folder}", flush=True)
 
-        # Retry the bag import that failed due to missing message definitions
+        # Retry the bag import that failed due to missing message definitions,
+        # applying the topic selection cached from the first attempt
         if self.pending_bag is not None:
-            pending_bag = self.pending_bag
-            print(f"Retry importing {pending_bag[1]}")
-            self.loadBagFiles([pending_bag])
+            label, bagfile, topics = self.pending_bag
+            self.pending_bag = None
+            print(f"Retry importing {bagfile}", flush=True)
+            self.addBagToDataPool(label, bagfile, topics)
+            if self.pending_bag is None:
+                # Retry succeeded; continue with the remaining import queue
+                self.processImportQueue()
 
     @staticmethod
     def getSelectedFolder(app_data):
@@ -305,6 +329,9 @@ class DearBagPlayer:
             os.path.join(current_path, file_name) if file_name else "",
             current_path,
         ]
+        # Depending on the DPG version, the selection may only be
+        # reported through the 'selections' dict
+        candidates.extend(app_data.get("selections", {}).values())
 
         for candidate in candidates:
             if candidate and os.path.isdir(candidate):
@@ -314,26 +341,84 @@ class DearBagPlayer:
 
     def loadBagFiles(self, bag_files):
         """
-        Load bag files or rosbag2 folders into the data pool.
+        Load bag files or rosbag2 folders into the data pool. Topics are
+        selected by the user one bag at a time before the actual parsing.
 
         :param bag_files: list of (label, bag_file_path) tuples
         """
         self.pending_bag = None
-        loaded = False
-        for label, bagfile in bag_files:
-            database = self.parseBagFile(bagfile, self.topics, label=label)
-            if database is None:
-                # Failed parses must not pollute the data pool bookkeeping,
-                # otherwise bag_files_name and msg_data_pool get out of sync.
-                continue
-            self.bag_files.append(bagfile)
-            self.bag_files_name.append(label)
-            self.msg_data_pool.append(database)
-            self.data_pool_window.addNewEntries(label=label, database=database)
-            loaded = True
+        self.import_queue = list(bag_files)
+        self.import_loaded = False
+        self.processImportQueue()
 
-        if loaded:
-            self.initTimeline()
+    def processImportQueue(self):
+        """
+        Show the topic selection window for the next queued bag, then import
+        the selected topics and continue with the remaining bags.
+        """
+        if not self.import_queue:
+            if self.import_loaded:
+                self.initTimeline()
+            return
+
+        label, bagfile = self.import_queue.pop(0)
+        try:
+            stats = self.rosbag_parser.getTopicStats(bagfile)
+        except Exception as e:
+            error_message = f"RosbagParser Error: {str(e)}"
+            print(error_message)
+            self.plot_window.createErrorPopup(
+                error_message,
+                popup_width=350, popup_height=60
+            )
+            self.processImportQueue()
+            return
+
+        if not stats:
+            self.addBagToDataPool(label, bagfile, None)
+            self.processImportQueue()
+            return
+
+        self.topic_select_window.show(
+            label, stats,
+            on_import=lambda topics: self.onTopicsSelected(label, bagfile, topics),
+            on_cancel=self.processImportQueue,
+        )
+
+    def onTopicsSelected(self, label, bagfile, topics):
+        self.addBagToDataPool(label, bagfile, topics)
+        if self.pending_bag is not None:
+            # Import failed due to missing message definitions; keep the
+            # remaining queue and wait for the user to load the definitions
+            return
+        self.processImportQueue()
+
+    def addBagToDataPool(self, label, bagfile, topics):
+        self.setBusy(f"Loading {label} ...")
+        try:
+            database = self.parseBagFile(bagfile, topics, label=label)
+        finally:
+            self.setBusy()
+        if database is None:
+            # Failed parses must not pollute the data pool bookkeeping,
+            # otherwise bag_files_name and msg_data_pool get out of sync.
+            return
+        self.bag_files.append(bagfile)
+        self.bag_files_name.append(label)
+        self.msg_data_pool.append(database)
+        self.data_pool_window.addNewEntries(label=label, database=database)
+        self.import_loaded = True
+
+    def setBusy(self, text=None):
+        """
+        Show a busy hint in the viewport title while a long operation runs,
+        so the application does not look frozen.
+        """
+        title = f"DearBagPlayer - {__version__}"
+        try:
+            dpg.set_viewport_title(f"{title} - {text}" if text else title)
+        except Exception:
+            pass
 
     # -----------------------------------------
     # Main Entry
